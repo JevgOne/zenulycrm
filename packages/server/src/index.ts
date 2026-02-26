@@ -6,6 +6,10 @@ import path from 'path';
 // Database
 import { initDatabase } from './db/connection';
 
+// Auth
+import authRouter from './routes/auth';
+import { requireAuth } from './middleware/auth';
+
 // Routes
 import contactsRouter from './routes/contacts';
 import importRouter from './routes/import';
@@ -15,35 +19,50 @@ import campaignsRouter from './routes/campaigns';
 import sequencesRouter from './routes/sequences';
 import trackingRouter from './routes/tracking';
 import remindersRouter from './routes/reminders';
+import usersRouter from './routes/users';
 
 // Services
 import { startScheduler } from './services/scheduler';
 
 async function start() {
-  // Initialize database schema
   await initDatabase();
 
   const app = express();
   const PORT = process.env.PORT || 3001;
 
+  // Global noindex header for all responses
+  app.use((_req, res, next) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet');
+    next();
+  });
+
   // Middleware
-  app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174'], credentials: true }));
+  app.use(cors({
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      process.env.CLIENT_URL || '',
+    ].filter(Boolean),
+    credentials: true,
+  }));
   app.use(express.json());
 
-  // API routes
-  app.use('/api/contacts', contactsRouter);
-  app.use('/api/import', importRouter);
-  app.use('/api/dashboard', dashboardRouter);
-  app.use('/api/templates', templatesRouter);
-  app.use('/api/campaigns', campaignsRouter);
-  app.use('/api/sequences', sequencesRouter);
+  // Public routes (no auth required)
+  app.use('/api/auth', authRouter);
   app.use('/api/track', trackingRouter);
-  app.use('/api/reminders', remindersRouter);
-
-  // Health check
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
+
+  // Protected routes (auth required)
+  app.use('/api/contacts', requireAuth, contactsRouter);
+  app.use('/api/import', requireAuth, importRouter);
+  app.use('/api/dashboard', requireAuth, dashboardRouter);
+  app.use('/api/templates', requireAuth, templatesRouter);
+  app.use('/api/campaigns', requireAuth, campaignsRouter);
+  app.use('/api/sequences', requireAuth, sequencesRouter);
+  app.use('/api/reminders', requireAuth, remindersRouter);
+  app.use('/api/users', requireAuth, usersRouter);
 
   // In production, serve React build
   if (process.env.NODE_ENV === 'production') {
