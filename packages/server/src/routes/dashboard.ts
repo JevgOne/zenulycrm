@@ -4,20 +4,18 @@ import db from '../db/connection';
 const router = Router();
 
 router.get('/overview', async (_req: Request, res: Response) => {
-  const totalRow = await db.get('SELECT COUNT(*) as c FROM contacts');
-  const monthRow = await db.get("SELECT COUNT(*) as c FROM contacts WHERE created_at >= date('now', 'start of month')");
-  const stages = await db.all('SELECT stage, COUNT(*) as count FROM contacts GROUP BY stage');
-  const byPriority = await db.all('SELECT priority, COUNT(*) as count FROM contacts GROUP BY priority');
-  const avgRow = await db.get('SELECT AVG(score) as avg FROM contacts WHERE score > 0');
-  const recentActivity = await db.all(
-    'SELECT a.*, c.business_name, c.domain FROM activities a LEFT JOIN contacts c ON a.contact_id = c.id ORDER BY a.created_at DESC LIMIT 10'
-  );
-  const upcomingReminders = await db.all(
-    "SELECT r.*, c.business_name, c.domain FROM reminders r LEFT JOIN contacts c ON r.contact_id = c.id WHERE r.completed = 0 AND r.due_at >= datetime('now') ORDER BY r.due_at LIMIT 10"
-  );
-  const sentRow = await db.get("SELECT COUNT(*) as c FROM sent_emails WHERE status != 'queued'");
-  const openedRow = await db.get("SELECT COUNT(*) as c FROM sent_emails WHERE opened_at IS NOT NULL");
-  const clickedRow = await db.get("SELECT COUNT(*) as c FROM sent_emails WHERE clicked_at IS NOT NULL");
+  const [totalRow, monthRow, stages, byPriority, avgRow, recentActivity, upcomingReminders, sentRow, openedRow, clickedRow] = await Promise.all([
+    db.get('SELECT COUNT(*) as c FROM contacts'),
+    db.get("SELECT COUNT(*) as c FROM contacts WHERE created_at >= date('now', 'start of month')"),
+    db.all('SELECT stage, COUNT(*) as count FROM contacts GROUP BY stage'),
+    db.all('SELECT priority, COUNT(*) as count FROM contacts GROUP BY priority'),
+    db.get('SELECT AVG(score) as avg FROM contacts WHERE score > 0'),
+    db.all('SELECT a.*, c.business_name, c.domain FROM activities a LEFT JOIN contacts c ON a.contact_id = c.id ORDER BY a.created_at DESC LIMIT 10'),
+    db.all("SELECT r.*, c.business_name, c.domain FROM reminders r LEFT JOIN contacts c ON r.contact_id = c.id WHERE r.completed = 0 AND r.due_at >= datetime('now') ORDER BY r.due_at LIMIT 10"),
+    db.get("SELECT COUNT(*) as c FROM sent_emails WHERE status != 'queued'"),
+    db.get("SELECT COUNT(*) as c FROM sent_emails WHERE opened_at IS NOT NULL"),
+    db.get("SELECT COUNT(*) as c FROM sent_emails WHERE clicked_at IS NOT NULL"),
+  ]);
 
   res.json({
     totalContacts: totalRow.c,
