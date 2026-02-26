@@ -1,0 +1,15 @@
+{
+  "buildCommand": "cd packages/client && npm install && npm run build",
+  "outputDirectory": "packages/client/dist",
+  "framework": null,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/index.ts": {
+      "runtime": "@vercel/node@3.0.0",
+      "maxDuration": 30
+    }
+  }
+}
