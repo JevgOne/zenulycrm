@@ -11,7 +11,7 @@ const PIXEL = Buffer.from(
 
 // GET /api/track/open/:trackingId
 router.get('/open/:trackingId', (req: Request, res: Response) => {
-  recordOpen(req.params.trackingId);
+  recordOpen(req.params.trackingId as string);
   res.set({
     'Content-Type': 'image/gif',
     'Content-Length': String(PIXEL.length),
@@ -23,7 +23,7 @@ router.get('/open/:trackingId', (req: Request, res: Response) => {
 // GET /api/track/click/:trackingId
 router.get('/click/:trackingId', (req: Request, res: Response) => {
   const { url } = req.query;
-  recordClick(req.params.trackingId);
+  recordClick(req.params.trackingId as string);
   if (url && typeof url === 'string') {
     res.redirect(url);
   } else {

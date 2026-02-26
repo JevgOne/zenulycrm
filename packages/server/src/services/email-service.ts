@@ -56,7 +56,7 @@ export async function sendEmail(sentEmailId: number): Promise<SendResult> {
       }),
     });
 
-    const data = await response.json();
+    const data: any = await response.json();
 
     if (response.ok) {
       db.prepare(`

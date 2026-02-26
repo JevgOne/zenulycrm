@@ -199,7 +199,7 @@ router.post('/scan', (req: Request, res: Response) => {
 
 // GET /api/import/scan/:jobId - Check scan status
 router.get('/scan/:jobId', (req: Request, res: Response) => {
-  const job = scanJobs.get(req.params.jobId);
+  const job = scanJobs.get(req.params.jobId as string);
   if (!job) return res.status(404).json({ error: 'Job not found' });
   res.json(job);
 });
