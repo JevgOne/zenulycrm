@@ -6,3 +6,6 @@ dist/
 /tmp/
 *.xml
 packages/server/data/
+.vercel
+.env*.local
+packages/server/dist/

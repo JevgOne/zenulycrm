@@ -66,7 +66,11 @@ async function start() {
 
   // In production, serve React build
   if (process.env.NODE_ENV === 'production') {
-    const clientDist = path.join(__dirname, '../../client/dist');
+    // Vercel bundles to dist/public, local dev uses ../../client/dist
+    const publicDir = path.join(__dirname, 'public');
+    const clientDist = require('fs').existsSync(publicDir)
+      ? publicDir
+      : path.join(__dirname, '../../client/dist');
     app.use(express.static(clientDist));
     app.get('*', (_req, res) => {
       res.sendFile(path.join(clientDist, 'index.html'));
