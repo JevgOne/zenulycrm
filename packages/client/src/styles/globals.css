@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply text-gray-900 antialiased;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium
+           hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium
+           border hover:bg-gray-50 transition-colors;
+  }
+}

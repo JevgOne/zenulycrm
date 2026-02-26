@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.db
+.env
+.DS_Store
+/tmp/
+*.xml
+packages/server/data/
