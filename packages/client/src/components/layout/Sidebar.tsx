@@ -1,28 +1,42 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Kanban, Mail, FileText,
-  Repeat, Download, Settings
+  Repeat, Download, Settings, LogOut
 } from 'lucide-react';
 
 const nav = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/contacts', icon: Users, label: 'Kontakty' },
-  { to: '/pipeline', icon: Kanban, label: 'Pipeline' },
-  { to: '/campaigns', icon: Mail, label: 'Kampaně' },
-  { to: '/templates', icon: FileText, label: 'Šablony' },
-  { to: '/sequences', icon: Repeat, label: 'Sekvence' },
-  { to: '/import', icon: Download, label: 'Import / Scan' },
-  { to: '/settings', icon: Settings, label: 'Nastavení' },
+  { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/admin/contacts', icon: Users, label: 'Kontakty' },
+  { to: '/admin/pipeline', icon: Kanban, label: 'Pipeline' },
+  { to: '/admin/campaigns', icon: Mail, label: 'Kampaně' },
+  { to: '/admin/templates', icon: FileText, label: 'Šablony' },
+  { to: '/admin/sequences', icon: Repeat, label: 'Sekvence' },
+  { to: '/admin/import', icon: Download, label: 'Import / Scan' },
+  { to: '/admin/settings', icon: Settings, label: 'Nastavení' },
 ];
 
 export default function Sidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('zenuly_auth');
+    navigate('/');
+  };
+
   return (
     <aside className="w-56 bg-gray-900 text-white flex flex-col min-h-screen fixed left-0 top-0">
-      <div className="p-4 border-b border-gray-700">
-        <h1 className="text-xl font-bold tracking-tight">
-          <span className="text-brand-400">Weblyx</span> CRM
-        </h1>
-        <p className="text-xs text-gray-400 mt-0.5">Lead Management</p>
+      <div className="p-4 border-b border-gray-700/50">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <span className="text-white font-bold text-sm">Z</span>
+          </div>
+          <div>
+            <h1 className="text-base font-bold tracking-tight">
+              Zenuly <span className="text-brand-400">CRM</span>
+            </h1>
+            <p className="text-[10px] text-gray-500 -mt-0.5">Administrace</p>
+          </div>
+        </div>
       </div>
 
       <nav className="flex-1 py-3">
@@ -30,7 +44,7 @@ export default function Sidebar() {
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
+            end={to === '/admin'}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
                 isActive
@@ -45,8 +59,14 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-700 text-xs text-gray-500">
-        weblyx.cz
+      <div className="p-3 border-t border-gray-700/50">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-2.5 px-3 py-2 w-full text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+        >
+          <LogOut size={16} />
+          Odhlásit se
+        </button>
       </div>
     </aside>
   );
