@@ -4,7 +4,7 @@ import db from '../db/connection';
 const router = Router();
 
 // GET /api/contacts - List with filters
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   const {
     stage, category, city, source, priority,
     minScore, maxScore, q, tag,
@@ -35,10 +35,11 @@ router.get('/', (req: Request, res: Response) => {
 
   const offset = (Number(page) - 1) * Number(limit);
 
-  const countRow = db.prepare(`SELECT COUNT(*) as total FROM contacts ${where}`).get(...params) as any;
-  const rows = db.prepare(
-    `SELECT * FROM contacts ${where} ORDER BY ${sortCol} ${sortOrder} LIMIT ? OFFSET ?`
-  ).all(...params, Number(limit), offset);
+  const countRow = await db.get(`SELECT COUNT(*) as total FROM contacts ${where}`, ...params);
+  const rows = await db.all(
+    `SELECT * FROM contacts ${where} ORDER BY ${sortCol} ${sortOrder} LIMIT ? OFFSET ?`,
+    ...params, Number(limit), offset
+  );
 
   res.json({
     contacts: rows,
@@ -49,47 +50,40 @@ router.get('/', (req: Request, res: Response) => {
 });
 
 // GET /api/contacts/stages - Count per stage
-router.get('/stages', (_req: Request, res: Response) => {
-  const rows = db.prepare(
-    'SELECT stage, COUNT(*) as count FROM contacts GROUP BY stage'
-  ).all();
+router.get('/stages', async (_req: Request, res: Response) => {
+  const rows = await db.all('SELECT stage, COUNT(*) as count FROM contacts GROUP BY stage');
   res.json(rows);
 });
 
-// GET /api/contacts/categories - Distinct categories
-router.get('/categories', (_req: Request, res: Response) => {
-  const rows = db.prepare(
-    'SELECT DISTINCT category FROM contacts WHERE category IS NOT NULL ORDER BY category'
-  ).all();
+// GET /api/contacts/categories
+router.get('/categories', async (_req: Request, res: Response) => {
+  const rows = await db.all('SELECT DISTINCT category FROM contacts WHERE category IS NOT NULL ORDER BY category');
   res.json(rows.map((r: any) => r.category));
 });
 
-// GET /api/contacts/cities - Distinct cities
-router.get('/cities', (_req: Request, res: Response) => {
-  const rows = db.prepare(
-    'SELECT DISTINCT city FROM contacts WHERE city IS NOT NULL ORDER BY city'
-  ).all();
+// GET /api/contacts/cities
+router.get('/cities', async (_req: Request, res: Response) => {
+  const rows = await db.all('SELECT DISTINCT city FROM contacts WHERE city IS NOT NULL ORDER BY city');
   res.json(rows.map((r: any) => r.city));
 });
 
-// GET /api/contacts/:id - Single contact with activities
-router.get('/:id', (req: Request, res: Response) => {
-  const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
+// GET /api/contacts/:id
+router.get('/:id', async (req: Request, res: Response) => {
+  const contact = await db.get('SELECT * FROM contacts WHERE id = ?', req.params.id);
   if (!contact) return res.status(404).json({ error: 'Contact not found' });
 
-  const activities = db.prepare(
-    'SELECT * FROM activities WHERE contact_id = ? ORDER BY created_at DESC LIMIT 50'
-  ).all(req.params.id);
+  const activities = await db.all(
+    'SELECT * FROM activities WHERE contact_id = ? ORDER BY created_at DESC LIMIT 50', req.params.id
+  );
+  const emails = await db.all(
+    'SELECT * FROM sent_emails WHERE contact_id = ? ORDER BY created_at DESC LIMIT 20', req.params.id
+  );
 
-  const emails = db.prepare(
-    'SELECT * FROM sent_emails WHERE contact_id = ? ORDER BY created_at DESC LIMIT 20'
-  ).all(req.params.id);
-
-  res.json({ ...contact as any, activities, emails });
+  res.json({ ...contact, activities, emails });
 });
 
-// POST /api/contacts - Create new contact
-router.post('/', (req: Request, res: Response) => {
+// POST /api/contacts
+router.post('/', async (req: Request, res: Response) => {
   const {
     business_name, url, domain, email, phone, contact_name,
     category, city, tags, source = 'manual',
@@ -98,7 +92,7 @@ router.post('/', (req: Request, res: Response) => {
     stage = 'new', priority = 'medium', notes
   } = req.body;
 
-  const result = db.prepare(`
+  const result = await db.run(`
     INSERT INTO contacts (
       business_name, url, domain, email, phone, contact_name,
       category, city, tags, source,
@@ -106,7 +100,7 @@ router.post('/', (req: Request, res: Response) => {
       cms, cms_version, load_time, outdated_tech,
       stage, priority, notes
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
+  `,
     business_name, url, domain, email, phone, contact_name,
     category, city, JSON.stringify(tags || []), source,
     score || 0, mobile_friendly ?? 1, ssl_valid ?? 1, copyright_year,
@@ -114,19 +108,17 @@ router.post('/', (req: Request, res: Response) => {
     stage, priority, notes
   );
 
-  // Log activity
-  db.prepare(`
-    INSERT INTO activities (contact_id, type, title)
-    VALUES (?, 'created', 'Kontakt vytvořen')
-  `).run(result.lastInsertRowid);
+  await db.run(`
+    INSERT INTO activities (contact_id, type, title) VALUES (?, 'created', 'Kontakt vytvořen')
+  `, result.lastInsertRowid);
 
-  const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(result.lastInsertRowid);
+  const contact = await db.get('SELECT * FROM contacts WHERE id = ?', result.lastInsertRowid);
   res.status(201).json(contact);
 });
 
-// PUT /api/contacts/:id - Update contact
-router.put('/:id', (req: Request, res: Response) => {
-  const existing = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id) as any;
+// PUT /api/contacts/:id
+router.put('/:id', async (req: Request, res: Response) => {
+  const existing = await db.get('SELECT * FROM contacts WHERE id = ?', req.params.id);
   if (!existing) return res.status(404).json({ error: 'Contact not found' });
 
   const fields = [
@@ -144,8 +136,7 @@ router.put('/:id', (req: Request, res: Response) => {
     if (req.body[field] !== undefined) {
       updates.push(`${field} = ?`);
       const val = (field === 'tags' || field === 'outdated_tech')
-        ? JSON.stringify(req.body[field])
-        : req.body[field];
+        ? JSON.stringify(req.body[field]) : req.body[field];
       values.push(val);
     }
   }
@@ -155,86 +146,66 @@ router.put('/:id', (req: Request, res: Response) => {
   updates.push("updated_at = datetime('now')");
   values.push(req.params.id);
 
-  db.prepare(`UPDATE contacts SET ${updates.join(', ')} WHERE id = ?`).run(...values);
+  await db.run(`UPDATE contacts SET ${updates.join(', ')} WHERE id = ?`, ...values);
 
-  // Log stage change
   if (req.body.stage && req.body.stage !== existing.stage) {
-    db.prepare(`
-      INSERT INTO activities (contact_id, type, title, details)
-      VALUES (?, 'stage_change', ?, ?)
-    `).run(
-      req.params.id,
-      `Pipeline: ${existing.stage} → ${req.body.stage}`,
-      JSON.stringify({ from: existing.stage, to: req.body.stage })
-    );
+    await db.run(`
+      INSERT INTO activities (contact_id, type, title, details) VALUES (?, 'stage_change', ?, ?)
+    `, req.params.id, `Pipeline: ${existing.stage} → ${req.body.stage}`,
+      JSON.stringify({ from: existing.stage, to: req.body.stage }));
   }
 
-  const updated = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
+  const updated = await db.get('SELECT * FROM contacts WHERE id = ?', req.params.id);
   res.json(updated);
 });
 
-// PATCH /api/contacts/:id/stage - Quick stage change
-router.patch('/:id/stage', (req: Request, res: Response) => {
+// PATCH /api/contacts/:id/stage
+router.patch('/:id/stage', async (req: Request, res: Response) => {
   const { stage } = req.body;
-  const existing = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id) as any;
+  const existing = await db.get('SELECT * FROM contacts WHERE id = ?', req.params.id);
   if (!existing) return res.status(404).json({ error: 'Contact not found' });
 
-  db.prepare("UPDATE contacts SET stage = ?, updated_at = datetime('now') WHERE id = ?")
-    .run(stage, req.params.id);
+  await db.run("UPDATE contacts SET stage = ?, updated_at = datetime('now') WHERE id = ?", stage, req.params.id);
 
   if (stage === 'contacted') {
-    db.prepare("UPDATE contacts SET last_contacted_at = datetime('now') WHERE id = ?")
-      .run(req.params.id);
+    await db.run("UPDATE contacts SET last_contacted_at = datetime('now') WHERE id = ?", req.params.id);
   }
 
-  db.prepare(`
-    INSERT INTO activities (contact_id, type, title, details)
-    VALUES (?, 'stage_change', ?, ?)
-  `).run(
-    req.params.id,
-    `Pipeline: ${existing.stage} → ${stage}`,
-    JSON.stringify({ from: existing.stage, to: stage })
-  );
+  await db.run(`
+    INSERT INTO activities (contact_id, type, title, details) VALUES (?, 'stage_change', ?, ?)
+  `, req.params.id, `Pipeline: ${existing.stage} → ${stage}`,
+    JSON.stringify({ from: existing.stage, to: stage }));
 
-  const updated = db.prepare('SELECT * FROM contacts WHERE id = ?').get(req.params.id);
+  const updated = await db.get('SELECT * FROM contacts WHERE id = ?', req.params.id);
   res.json(updated);
 });
 
-// POST /api/contacts/:id/notes - Add note
-router.post('/:id/notes', (req: Request, res: Response) => {
+// POST /api/contacts/:id/notes
+router.post('/:id/notes', async (req: Request, res: Response) => {
   const { text } = req.body;
-  db.prepare(`
-    INSERT INTO activities (contact_id, type, title, details)
-    VALUES (?, 'note', 'Poznámka', ?)
-  `).run(req.params.id, text);
-
+  await db.run(`
+    INSERT INTO activities (contact_id, type, title, details) VALUES (?, 'note', 'Poznámka', ?)
+  `, req.params.id, text);
   res.status(201).json({ ok: true });
 });
 
 // DELETE /api/contacts/:id
-router.delete('/:id', (req: Request, res: Response) => {
-  db.prepare('DELETE FROM contacts WHERE id = ?').run(req.params.id);
+router.delete('/:id', async (req: Request, res: Response) => {
+  await db.run('DELETE FROM contacts WHERE id = ?', req.params.id);
   res.json({ ok: true });
 });
 
-// POST /api/contacts/bulk - Bulk actions
-router.post('/bulk', (req: Request, res: Response) => {
+// POST /api/contacts/bulk
+router.post('/bulk', async (req: Request, res: Response) => {
   const { ids, action, value } = req.body;
 
-  if (action === 'stage') {
-    const stmt = db.prepare("UPDATE contacts SET stage = ?, updated_at = datetime('now') WHERE id = ?");
-    for (const id of ids) {
-      stmt.run(value, id);
-    }
-  } else if (action === 'delete') {
-    const stmt = db.prepare('DELETE FROM contacts WHERE id = ?');
-    for (const id of ids) {
-      stmt.run(id);
-    }
-  } else if (action === 'priority') {
-    const stmt = db.prepare("UPDATE contacts SET priority = ?, updated_at = datetime('now') WHERE id = ?");
-    for (const id of ids) {
-      stmt.run(value, id);
+  for (const id of ids) {
+    if (action === 'stage') {
+      await db.run("UPDATE contacts SET stage = ?, updated_at = datetime('now') WHERE id = ?", value, id);
+    } else if (action === 'delete') {
+      await db.run('DELETE FROM contacts WHERE id = ?', id);
+    } else if (action === 'priority') {
+      await db.run("UPDATE contacts SET priority = ?, updated_at = datetime('now') WHERE id = ?", value, id);
     }
   }
 

@@ -3,15 +3,10 @@ import { recordOpen, recordClick } from '../services/email-service';
 
 const router = Router();
 
-// 1x1 transparent pixel for open tracking
-const PIXEL = Buffer.from(
-  'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-  'base64'
-);
+const PIXEL = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
 
-// GET /api/track/open/:trackingId
-router.get('/open/:trackingId', (req: Request, res: Response) => {
-  recordOpen(req.params.trackingId as string);
+router.get('/open/:trackingId', async (req: Request, res: Response) => {
+  await recordOpen(req.params.trackingId as string);
   res.set({
     'Content-Type': 'image/gif',
     'Content-Length': String(PIXEL.length),
@@ -20,10 +15,9 @@ router.get('/open/:trackingId', (req: Request, res: Response) => {
   res.send(PIXEL);
 });
 
-// GET /api/track/click/:trackingId
-router.get('/click/:trackingId', (req: Request, res: Response) => {
+router.get('/click/:trackingId', async (req: Request, res: Response) => {
   const { url } = req.query;
-  recordClick(req.params.trackingId as string);
+  await recordClick(req.params.trackingId as string);
   if (url && typeof url === 'string') {
     res.redirect(url);
   } else {

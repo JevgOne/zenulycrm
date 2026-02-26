@@ -3,8 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 
-// Initialize database (runs migrations)
-import './db/connection';
+// Database
+import { initDatabase } from './db/connection';
 
 // Routes
 import contactsRouter from './routes/contacts';
@@ -19,38 +19,48 @@ import remindersRouter from './routes/reminders';
 // Services
 import { startScheduler } from './services/scheduler';
 
-const app = express();
-const PORT = process.env.PORT || 3001;
+async function start() {
+  // Initialize database schema
+  await initDatabase();
 
-// Middleware
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
-app.use(express.json());
+  const app = express();
+  const PORT = process.env.PORT || 3001;
 
-// API routes
-app.use('/api/contacts', contactsRouter);
-app.use('/api/import', importRouter);
-app.use('/api/dashboard', dashboardRouter);
-app.use('/api/templates', templatesRouter);
-app.use('/api/campaigns', campaignsRouter);
-app.use('/api/sequences', sequencesRouter);
-app.use('/api/track', trackingRouter);
-app.use('/api/reminders', remindersRouter);
+  // Middleware
+  app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174'], credentials: true }));
+  app.use(express.json());
 
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+  // API routes
+  app.use('/api/contacts', contactsRouter);
+  app.use('/api/import', importRouter);
+  app.use('/api/dashboard', dashboardRouter);
+  app.use('/api/templates', templatesRouter);
+  app.use('/api/campaigns', campaignsRouter);
+  app.use('/api/sequences', sequencesRouter);
+  app.use('/api/track', trackingRouter);
+  app.use('/api/reminders', remindersRouter);
 
-// In production, serve React build
-if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.join(__dirname, '../../client/dist');
-  app.use(express.static(clientDist));
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(clientDist, 'index.html'));
+  // Health check
+  app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // In production, serve React build
+  if (process.env.NODE_ENV === 'production') {
+    const clientDist = path.join(__dirname, '../../client/dist');
+    app.use(express.static(clientDist));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(clientDist, 'index.html'));
+    });
+  }
+
+  app.listen(PORT, () => {
+    console.log(`Zenuly CRM server running on http://localhost:${PORT}`);
+    startScheduler();
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`Weblyx Lead CRM server running on http://localhost:${PORT}`);
-  startScheduler();
+start().catch(err => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });

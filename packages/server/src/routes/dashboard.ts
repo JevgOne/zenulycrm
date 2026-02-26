@@ -3,70 +3,50 @@ import db from '../db/connection';
 
 const router = Router();
 
-// GET /api/dashboard/overview
-router.get('/overview', (_req: Request, res: Response) => {
-  const totalContacts = (db.prepare('SELECT COUNT(*) as c FROM contacts').get() as any).c;
-  const thisMonth = (db.prepare(
-    "SELECT COUNT(*) as c FROM contacts WHERE created_at >= date('now', 'start of month')"
-  ).get() as any).c;
-
-  const stages = db.prepare(
-    'SELECT stage, COUNT(*) as count FROM contacts GROUP BY stage'
-  ).all();
-
-  const byPriority = db.prepare(
-    'SELECT priority, COUNT(*) as count FROM contacts GROUP BY priority'
-  ).all();
-
-  const avgScore = (db.prepare(
-    'SELECT AVG(score) as avg FROM contacts WHERE score > 0'
-  ).get() as any).avg;
-
-  const recentActivity = db.prepare(
+router.get('/overview', async (_req: Request, res: Response) => {
+  const totalRow = await db.get('SELECT COUNT(*) as c FROM contacts');
+  const monthRow = await db.get("SELECT COUNT(*) as c FROM contacts WHERE created_at >= date('now', 'start of month')");
+  const stages = await db.all('SELECT stage, COUNT(*) as count FROM contacts GROUP BY stage');
+  const byPriority = await db.all('SELECT priority, COUNT(*) as count FROM contacts GROUP BY priority');
+  const avgRow = await db.get('SELECT AVG(score) as avg FROM contacts WHERE score > 0');
+  const recentActivity = await db.all(
     'SELECT a.*, c.business_name, c.domain FROM activities a LEFT JOIN contacts c ON a.contact_id = c.id ORDER BY a.created_at DESC LIMIT 10'
-  ).all();
-
-  const upcomingReminders = db.prepare(
+  );
+  const upcomingReminders = await db.all(
     "SELECT r.*, c.business_name, c.domain FROM reminders r LEFT JOIN contacts c ON r.contact_id = c.id WHERE r.completed = 0 AND r.due_at >= datetime('now') ORDER BY r.due_at LIMIT 10"
-  ).all();
-
-  const emailStats = {
-    totalSent: (db.prepare("SELECT COUNT(*) as c FROM sent_emails WHERE status != 'queued'").get() as any).c,
-    totalOpened: (db.prepare("SELECT COUNT(*) as c FROM sent_emails WHERE opened_at IS NOT NULL").get() as any).c,
-    totalClicked: (db.prepare("SELECT COUNT(*) as c FROM sent_emails WHERE clicked_at IS NOT NULL").get() as any).c,
-  };
+  );
+  const sentRow = await db.get("SELECT COUNT(*) as c FROM sent_emails WHERE status != 'queued'");
+  const openedRow = await db.get("SELECT COUNT(*) as c FROM sent_emails WHERE opened_at IS NOT NULL");
+  const clickedRow = await db.get("SELECT COUNT(*) as c FROM sent_emails WHERE clicked_at IS NOT NULL");
 
   res.json({
-    totalContacts,
-    thisMonth,
+    totalContacts: totalRow.c,
+    thisMonth: monthRow.c,
     stages,
     byPriority,
-    avgScore: Math.round(avgScore || 0),
+    avgScore: Math.round(avgRow?.avg || 0),
     recentActivity,
     upcomingReminders,
-    emailStats,
+    emailStats: { totalSent: sentRow.c, totalOpened: openedRow.c, totalClicked: clickedRow.c },
   });
 });
 
-// GET /api/dashboard/by-category
-router.get('/by-category', (_req: Request, res: Response) => {
-  const rows = db.prepare(
+router.get('/by-category', async (_req: Request, res: Response) => {
+  const rows = await db.all(
     'SELECT category, COUNT(*) as count, AVG(score) as avg_score FROM contacts WHERE category IS NOT NULL GROUP BY category ORDER BY count DESC'
-  ).all();
+  );
   res.json(rows);
 });
 
-// GET /api/dashboard/by-city
-router.get('/by-city', (_req: Request, res: Response) => {
-  const rows = db.prepare(
+router.get('/by-city', async (_req: Request, res: Response) => {
+  const rows = await db.all(
     'SELECT city, COUNT(*) as count, AVG(score) as avg_score FROM contacts WHERE city IS NOT NULL GROUP BY city ORDER BY count DESC'
-  ).all();
+  );
   res.json(rows);
 });
 
-// GET /api/dashboard/score-distribution
-router.get('/score-distribution', (_req: Request, res: Response) => {
-  const rows = db.prepare(`
+router.get('/score-distribution', async (_req: Request, res: Response) => {
+  const rows = await db.all(`
     SELECT
       CASE
         WHEN score >= 80 THEN '80-100'
@@ -79,7 +59,7 @@ router.get('/score-distribution', (_req: Request, res: Response) => {
     FROM contacts
     GROUP BY range
     ORDER BY range DESC
-  `).all();
+  `);
   res.json(rows);
 });
 
