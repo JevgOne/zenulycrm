@@ -22,9 +22,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AdminLayout() {
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-bg">
         <Sidebar />
-        <main className="flex-1 ml-56 p-6">
+        <main className="flex-1 ml-[220px] p-6 bg-grid">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/contacts" element={<Contacts />} />

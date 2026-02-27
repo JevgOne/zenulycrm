@@ -42,22 +42,22 @@ export default function Settings() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="animate-page max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Nastavení</h1>
-        <p className="text-sm text-gray-500 mt-1">Správa účtů, API klíčů a nastavení systému</p>
+        <h1 className="heading-1">Nastavení</h1>
+        <p className="text-sm text-text-muted mt-1">Správa účtů, API klíčů a nastavení systému</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6">
+      <div className="flex gap-1 bg-border p-1 rounded-xl mb-6">
         {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
               tab === t.id
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'bg-surface2 text-text'
+                : 'text-text-muted hover:text-text'
             }`}
           >
             <t.icon size={16} />
@@ -70,10 +70,10 @@ export default function Settings() {
       {tab === 'users' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900">Správa uživatelů</h2>
+            <h2 className="heading-2">Správa uživatelů</h2>
             <button
               onClick={() => { setShowAddUser(true); setEditingUser(null); }}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-xl hover:bg-brand-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary/90 transition-colors"
             >
               <Plus size={16} /> Přidat uživatele
             </button>
@@ -111,41 +111,41 @@ export default function Settings() {
 
           {/* Users List */}
           {loading ? (
-            <div className="text-center py-12 text-gray-400">Načítání...</div>
+            <div className="text-center py-12 text-text-dim">Načítání...</div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            <div className="bg-surface2 rounded-xl border border-border-light divide-y divide-border-light">
               {users.map(user => (
                 <div key={user.id} className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-semibold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/60 to-primary flex items-center justify-center text-white font-semibold text-sm">
                       {(user.name || user.email)[0].toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-medium text-gray-900 flex items-center gap-2">
+                      <div className="font-medium text-text flex items-center gap-2">
                         {user.name || user.email}
                         {currentUser?.email === user.email && (
-                          <span className="text-[10px] bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded-full font-semibold">VY</span>
+                          <span className="text-[10px] bg-primary/15 text-primary-light px-1.5 py-0.5 rounded-full font-semibold">VY</span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
+                      <div className="text-sm text-text-muted">{user.email}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                      user.role === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-600'
+                      user.role === 'admin' ? 'bg-primary/15 text-primary-light' : 'bg-border text-text'
                     }`}>
                       {user.role === 'admin' ? 'Admin' : user.role}
                     </span>
                     <button
                       onClick={() => setChangingPassword(user.id)}
-                      className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                      className="p-2 text-text-dim hover:text-accent hover:bg-accent/10 rounded-lg transition-colors"
                       title="Změnit heslo"
                     >
                       <Key size={15} />
                     </button>
                     <button
                       onClick={() => { setEditingUser(user); setShowAddUser(false); }}
-                      className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                      className="p-2 text-text-dim hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                       title="Upravit"
                     >
                       <Pencil size={15} />
@@ -158,7 +158,7 @@ export default function Settings() {
                             loadUsers();
                           }
                         }}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-text-dim hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
                         title="Smazat"
                       >
                         <Trash2 size={15} />
@@ -168,7 +168,7 @@ export default function Settings() {
                 </div>
               ))}
               {users.length === 0 && (
-                <div className="text-center py-12 text-gray-400">Žádní uživatelé</div>
+                <div className="text-center py-12 text-text-dim">Žádní uživatelé</div>
               )}
             </div>
           )}
@@ -178,8 +178,8 @@ export default function Settings() {
       {/* API Keys Tab */}
       {tab === 'api' && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">API Klíče</h2>
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+          <h2 className="heading-2">API Klíče</h2>
+          <div className="bg-surface2 rounded-xl border border-border-light p-6 space-y-6">
             <ApiKeyField
               label="Resend API Key"
               description="Pro odesílání emailových kampaní"
@@ -201,9 +201,9 @@ export default function Settings() {
               envKey="SESSION_SECRET"
             />
           </div>
-          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <AlertTriangle size={18} className="text-amber-600 mt-0.5 shrink-0" />
-            <div className="text-sm text-amber-800">
+          <div className="flex items-start gap-3 bg-accent/5 border border-accent/20 rounded-xl p-4">
+            <AlertTriangle size={18} className="text-accent mt-0.5 shrink-0" />
+            <div className="text-sm text-accent">
               <p className="font-medium">Poznámka</p>
               <p className="mt-1">API klíče jsou nastaveny jako proměnné prostředí na serveru (Vercel).
                 Pro jejich změnu upravte proměnné přímo v nastavení Vercel projektu.</p>
@@ -215,27 +215,27 @@ export default function Settings() {
       {/* General Tab */}
       {tab === 'general' && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Obecné nastavení</h2>
-          <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+          <h2 className="heading-2">Obecné nastavení</h2>
+          <div className="bg-surface2 rounded-xl border border-border-light p-6 space-y-6">
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-1">Název CRM</h3>
-              <p className="text-sm text-gray-500">Zenuly CRM</p>
+              <h3 className="text-sm font-semibold text-text mb-1">Název CRM</h3>
+              <p className="text-sm text-text-muted">Zenuly CRM</p>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-1">Verze</h3>
-              <p className="text-sm text-gray-500">1.0.0</p>
+              <h3 className="text-sm font-semibold text-text mb-1">Verze</h3>
+              <p className="text-sm text-text-muted">1.0.0</p>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-1">Databáze</h3>
-              <p className="text-sm text-gray-500">Turso (LibSQL)</p>
+              <h3 className="text-sm font-semibold text-text mb-1">Databáze</h3>
+              <p className="text-sm text-text-muted">Turso (LibSQL)</p>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-1">Zabezpečení</h3>
+              <h3 className="text-sm font-semibold text-text mb-1">Zabezpečení</h3>
               <div className="flex flex-wrap gap-2 mt-1">
-                <span className="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">JWT Auth</span>
-                <span className="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">HTTPS</span>
-                <span className="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">noindex</span>
-                <span className="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">CORS</span>
+                <span className="text-xs bg-teal/15 text-teal px-2.5 py-1 rounded-full">JWT Auth</span>
+                <span className="text-xs bg-teal/15 text-teal px-2.5 py-1 rounded-full">HTTPS</span>
+                <span className="text-xs bg-teal/15 text-teal px-2.5 py-1 rounded-full">noindex</span>
+                <span className="text-xs bg-teal/15 text-teal px-2.5 py-1 rounded-full">CORS</span>
               </div>
             </div>
           </div>
@@ -275,60 +275,60 @@ function UserForm({ user, onSave, onCancel }: {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+    <form onSubmit={handleSubmit} className="bg-surface2 rounded-xl border border-border-light p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">{user ? 'Upravit uživatele' : 'Nový uživatel'}</h3>
-        <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+        <h3 className="font-semibold text-text">{user ? 'Upravit uživatele' : 'Nový uživatel'}</h3>
+        <button type="button" onClick={onCancel} className="text-text-dim hover:text-text">
           <X size={18} />
         </button>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Email</label>
+          <label className="label">Email</label>
           <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+            className="input w-full"
             placeholder="email@example.com"
           />
         </div>
         <div>
-          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Jméno</label>
+          <label className="label">Jméno</label>
           <input type="text" value={name} onChange={e => setName(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+            className="input w-full"
             placeholder="Jan Novák"
           />
         </div>
         <div>
-          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Heslo{user ? ' (nechat prázdné = beze změny)' : ''}</label>
+          <label className="label">Heslo{user ? ' (nechat prázdné = beze změny)' : ''}</label>
           <div className="relative">
             <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+              className="input w-full pr-10"
               placeholder={user ? '••••••' : 'Min. 6 znaků'}
             />
             <button type="button" onClick={() => setShowPw(!showPw)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-text">
               {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
           </div>
         </div>
         <div>
-          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1 block">Role</label>
+          <label className="label">Role</label>
           <select value={role} onChange={e => setRole(e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 bg-white">
+            className="input w-full">
             <option value="admin">Admin</option>
             <option value="user">Uživatel</option>
           </select>
         </div>
       </div>
       {error && (
-        <div className="px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">{error}</div>
+        <div className="px-3 py-2 bg-danger/10 border border-danger/20 rounded-lg text-sm text-danger">{error}</div>
       )}
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel}
-          className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          className="px-4 py-2 text-sm text-text hover:bg-surface rounded-lg transition-colors">
           Zrušit
         </button>
         <button type="submit" disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 disabled:opacity-60 transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-60 transition-colors">
           <Save size={14} /> {saving ? 'Ukládání...' : 'Uložit'}
         </button>
       </div>
@@ -359,31 +359,31 @@ function PasswordForm({ userId, onSave, onCancel }: {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-amber-200 p-5 space-y-3">
+    <form onSubmit={handleSubmit} className="bg-surface2 rounded-xl border border-accent/20 p-5 space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">Změnit heslo</h3>
-        <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+        <h3 className="font-semibold text-text">Změnit heslo</h3>
+        <button type="button" onClick={onCancel} className="text-text-dim hover:text-text">
           <X size={18} />
         </button>
       </div>
       <div className="relative max-w-sm">
         <input type={showPw ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
-          className="w-full px-3 py-2.5 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+          className="input w-full pr-10"
           placeholder="Nové heslo (min. 6 znaků)" autoFocus
         />
         <button type="button" onClick={() => setShowPw(!showPw)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-dim hover:text-text">
           {showPw ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
       </div>
-      {error && <div className="text-sm text-red-600">{error}</div>}
+      {error && <div className="text-sm text-danger">{error}</div>}
       <div className="flex gap-2">
         <button type="submit" disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-60 transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent/90 disabled:opacity-60 transition-colors">
           <Key size={14} /> {saving ? 'Ukládání...' : 'Změnit heslo'}
         </button>
         <button type="button" onClick={onCancel}
-          className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          className="px-4 py-2 text-sm text-text hover:bg-surface rounded-lg transition-colors">
           Zrušit
         </button>
       </div>
@@ -397,12 +397,12 @@ function ApiKeyField({ label, description, envKey }: {
   envKey: string;
 }) {
   return (
-    <div className="flex items-start justify-between pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+    <div className="flex items-start justify-between pb-4 border-b border-border-light last:border-0 last:pb-0">
       <div>
-        <h3 className="text-sm font-semibold text-gray-700">{label}</h3>
-        <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+        <h3 className="text-sm font-semibold text-text">{label}</h3>
+        <p className="text-xs text-text-dim mt-0.5">{description}</p>
       </div>
-      <code className="text-xs bg-gray-100 text-gray-500 px-3 py-1.5 rounded-lg">{envKey}</code>
+      <code className="text-xs bg-border text-text-muted px-3 py-1.5 rounded-lg">{envKey}</code>
     </div>
   );
 }

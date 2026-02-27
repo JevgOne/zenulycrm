@@ -17,8 +17,8 @@ const CITIES = [
 
 export default function Import() {
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Import / Scanner</h1>
+    <div className="animate-page">
+      <h1 className="heading-1 mb-6">Import / Scanner</h1>
       <div className="grid grid-cols-2 gap-6">
         <CsvImport />
         <WebScanner />
@@ -48,11 +48,11 @@ function CsvImport() {
   };
 
   return (
-    <div className="bg-white rounded-lg border p-5">
-      <h2 className="font-semibold mb-3 flex items-center gap-2">
+    <div className="card">
+      <h2 className="heading-2 mb-3 flex items-center gap-2">
         <Upload size={18} /> Import CSV
       </h2>
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-text-muted mb-4">
         Nahraj CSV soubor z lead-finderu nebo vlastní seznam kontaktů.
       </p>
 
@@ -64,11 +64,11 @@ function CsvImport() {
       </button>
 
       {result && (
-        <div className="mt-4 p-3 bg-green-50 rounded-lg text-sm">
-          <div className="flex items-center gap-2 text-green-700 font-medium">
+        <div className="mt-4 p-3 bg-teal/10 rounded-lg text-sm">
+          <div className="flex items-center gap-2 text-teal font-medium">
             <CheckCircle size={16} /> Import dokončen
           </div>
-          <div className="mt-1 text-green-600">
+          <div className="mt-1 text-teal">
             Nových: {result.imported} | Aktualizovaných: {result.updated} | Přeskočeno: {result.skipped}
           </div>
         </div>
@@ -101,21 +101,21 @@ function WebScanner() {
   };
 
   return (
-    <div className="bg-white rounded-lg border p-5">
-      <h2 className="font-semibold mb-3 flex items-center gap-2">
+    <div className="card">
+      <h2 className="heading-2 mb-3 flex items-center gap-2">
         <Search size={18} /> Web Scanner
       </h2>
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-text-muted mb-4">
         Automaticky najdi firmy se zastaralými weby.
       </p>
 
       <div className="space-y-3">
         <select value={category} onChange={e => setCategory(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm">
+          className="input w-full">
           {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={city} onChange={e => setCity(e.target.value)}
-          className="w-full border rounded-lg px-3 py-2 text-sm">
+          className="input w-full">
           {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <button onClick={startScan} disabled={polling}
@@ -127,9 +127,9 @@ function WebScanner() {
 
       {status && (
         <div className={`mt-4 p-3 rounded-lg text-sm ${
-          status.status === 'completed' ? 'bg-green-50 text-green-700'
-          : status.status === 'error' ? 'bg-red-50 text-red-700'
-          : 'bg-blue-50 text-blue-700'
+          status.status === 'completed' ? 'bg-teal/10 text-teal'
+          : status.status === 'error' ? 'bg-danger/10 text-danger'
+          : 'bg-primary/10 text-primary-light'
         }`}>
           <div className="font-medium">{status.progress}</div>
           {status.result && (
@@ -171,23 +171,23 @@ function ManualBulk() {
   };
 
   return (
-    <div className="bg-white rounded-lg border p-5">
-      <h2 className="font-semibold mb-3">Rychlý import emailů</h2>
-      <p className="text-sm text-gray-500 mb-4">
+    <div className="card">
+      <h2 className="heading-2 mb-3">Rychlý import emailů</h2>
+      <p className="text-sm text-text-muted mb-4">
         Vlož emaily (jeden na řádek). Formát: email nebo "Jméno &lt;email&gt;"
       </p>
 
       <div className="space-y-3">
         <textarea value={emails} onChange={e => setEmails(e.target.value)}
           placeholder={"jan@firma.cz\nPetr Novák <petr@novak.cz>\ninfo@kvetiny.cz"}
-          className="w-full border rounded-lg px-3 py-2 text-sm h-28 font-mono" />
+          className="input w-full h-28 font-mono" />
         <div className="grid grid-cols-2 gap-2">
           <input placeholder="Obor (volitelné)" value={category}
             onChange={e => setCategory(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm" />
+            className="input" />
           <input placeholder="Město (volitelné)" value={city}
             onChange={e => setCity(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm" />
+            className="input" />
         </div>
         <button onClick={handleImport} disabled={!emails.trim()} className="btn-primary w-full">
           Přidat kontakty
@@ -195,7 +195,7 @@ function ManualBulk() {
       </div>
 
       {result && (
-        <div className="mt-3 p-2 bg-green-50 text-green-700 rounded text-sm text-center">
+        <div className="mt-3 p-2 bg-teal/10 text-teal rounded text-sm text-center">
           {result}
         </div>
       )}

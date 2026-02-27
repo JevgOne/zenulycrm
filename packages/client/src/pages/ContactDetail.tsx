@@ -56,21 +56,21 @@ export default function ContactDetail() {
   })();
 
   return (
-    <div>
-      <button onClick={() => navigate('/contacts')} className="text-sm text-gray-500 hover:text-gray-700 mb-4 flex items-center gap-1">
+    <div className="animate-page">
+      <button onClick={() => navigate('/contacts')} className="text-sm text-text-muted hover:text-text mb-4 flex items-center gap-1">
         <ArrowLeft size={14} /> Zpět na kontakty
       </button>
 
       <div className="grid grid-cols-3 gap-6">
         {/* Main info */}
         <div className="col-span-2 space-y-4">
-          <div className="bg-white rounded-lg border p-5">
+          <div className="card">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h1 className="text-xl font-bold">{contact.business_name || contact.domain || 'Bez názvu'}</h1>
+                <h1 className="heading-1">{contact.business_name || contact.domain || 'Bez názvu'}</h1>
                 {contact.domain && (
                   <a href={contact.url || `https://${contact.domain}`} target="_blank"
-                    className="text-sm text-brand-600 hover:underline flex items-center gap-1">
+                    className="text-sm text-primary hover:underline flex items-center gap-1">
                     <Globe size={14} /> {contact.domain}
                   </a>
                 )}
@@ -79,7 +79,7 @@ export default function ContactDetail() {
                 <button onClick={() => setEditing(!editing)} className="btn-secondary text-sm">
                   {editing ? 'Zrušit' : 'Upravit'}
                 </button>
-                <button onClick={handleDelete} className="text-red-500 hover:text-red-700 p-2">
+                <button onClick={handleDelete} className="text-danger hover:text-danger p-2">
                   <Trash2 size={16} />
                 </button>
               </div>
@@ -89,33 +89,33 @@ export default function ContactDetail() {
               <div className="grid grid-cols-2 gap-3">
                 <input placeholder="Název firmy" value={form.business_name || ''}
                   onChange={e => setForm({...form, business_name: e.target.value})}
-                  className="border rounded px-3 py-2 text-sm" />
+                  className="input" />
                 <input placeholder="Web" value={form.url || ''}
                   onChange={e => setForm({...form, url: e.target.value})}
-                  className="border rounded px-3 py-2 text-sm" />
+                  className="input" />
                 <input placeholder="Email" value={form.email || ''}
                   onChange={e => setForm({...form, email: e.target.value})}
-                  className="border rounded px-3 py-2 text-sm" />
+                  className="input" />
                 <input placeholder="Telefon" value={form.phone || ''}
                   onChange={e => setForm({...form, phone: e.target.value})}
-                  className="border rounded px-3 py-2 text-sm" />
+                  className="input" />
                 <input placeholder="Kontaktní osoba" value={form.contact_name || ''}
                   onChange={e => setForm({...form, contact_name: e.target.value})}
-                  className="border rounded px-3 py-2 text-sm" />
+                  className="input" />
                 <input placeholder="Obor" value={form.category || ''}
                   onChange={e => setForm({...form, category: e.target.value})}
-                  className="border rounded px-3 py-2 text-sm" />
+                  className="input" />
                 <input placeholder="Město" value={form.city || ''}
                   onChange={e => setForm({...form, city: e.target.value})}
-                  className="border rounded px-3 py-2 text-sm" />
+                  className="input" />
                 <button onClick={saveEdit} className="btn-primary col-span-2">Uložit</button>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-y-2 text-sm">
-                {contact.email && <div className="flex items-center gap-2"><Mail size={14} className="text-gray-400" /> {contact.email}</div>}
-                {contact.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-gray-400" /> {contact.phone}</div>}
-                {contact.city && <div className="flex items-center gap-2"><MapPin size={14} className="text-gray-400" /> {contact.city}</div>}
-                {contact.category && <div className="flex items-center gap-2"><Tag size={14} className="text-gray-400" /> {contact.category}</div>}
+                {contact.email && <div className="flex items-center gap-2"><Mail size={14} className="text-text-dim" /> {contact.email}</div>}
+                {contact.phone && <div className="flex items-center gap-2"><Phone size={14} className="text-text-dim" /> {contact.phone}</div>}
+                {contact.city && <div className="flex items-center gap-2"><MapPin size={14} className="text-text-dim" /> {contact.city}</div>}
+                {contact.category && <div className="flex items-center gap-2"><Tag size={14} className="text-text-dim" /> {contact.category}</div>}
                 {contact.contact_name && <div>Kontakt: {contact.contact_name}</div>}
                 <div>Zdroj: {contact.source}</div>
               </div>
@@ -123,15 +123,15 @@ export default function ContactDetail() {
           </div>
 
           {/* Pipeline */}
-          <div className="bg-white rounded-lg border p-5">
-            <h2 className="font-semibold mb-3">Pipeline</h2>
+          <div className="card">
+            <h2 className="heading-2 mb-3">Pipeline</h2>
             <div className="flex gap-1">
               {STAGES.map(s => (
                 <button key={s} onClick={() => changeStage(s)}
                   className={`flex-1 py-2 text-xs font-medium rounded transition-colors ${
                     contact.stage === s
-                      ? 'bg-brand-600 text-white'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      ? 'bg-primary text-white'
+                      : 'bg-border text-text-muted hover:bg-surface2'
                   }`}>
                   {STAGE_LABELS[s]}
                 </button>
@@ -141,8 +141,8 @@ export default function ContactDetail() {
 
           {/* Website analysis */}
           {contact.score > 0 && (
-            <div className="bg-white rounded-lg border p-5">
-              <h2 className="font-semibold mb-3">Analýza webu</h2>
+            <div className="card">
+              <h2 className="heading-2 mb-3">Analýza webu</h2>
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <AnalysisItem
                   label="Score"
@@ -182,7 +182,7 @@ export default function ContactDetail() {
                   <h3 className="text-sm font-medium mb-2">Nalezené problémy:</h3>
                   <ul className="space-y-1">
                     {outdatedTech.map((t: string, i: number) => (
-                      <li key={i} className="text-sm flex items-center gap-2 text-orange-700">
+                      <li key={i} className="text-sm flex items-center gap-2 text-accent">
                         <AlertTriangle size={14} /> {t}
                       </li>
                     ))}
@@ -193,12 +193,12 @@ export default function ContactDetail() {
           )}
 
           {/* Add note */}
-          <div className="bg-white rounded-lg border p-5">
-            <h2 className="font-semibold mb-3">Přidat poznámku</h2>
+          <div className="card">
+            <h2 className="heading-2 mb-3">Přidat poznámku</h2>
             <div className="flex gap-2">
               <input value={note} onChange={e => setNote(e.target.value)}
                 placeholder="Napsat poznámku..."
-                className="flex-1 border rounded-lg px-3 py-2 text-sm"
+                className="input flex-1"
                 onKeyDown={e => e.key === 'Enter' && addNote()}
               />
               <button onClick={addNote} className="btn-primary">Přidat</button>
@@ -207,23 +207,23 @@ export default function ContactDetail() {
         </div>
 
         {/* Timeline */}
-        <div className="bg-white rounded-lg border p-5 h-fit">
-          <h2 className="font-semibold mb-3">Historie</h2>
+        <div className="card h-fit">
+          <h2 className="heading-2 mb-3">Historie</h2>
           <div className="space-y-3">
             {(contact.activities || []).map((a: any) => (
-              <div key={a.id} className="border-l-2 border-gray-200 pl-3 py-1">
+              <div key={a.id} className="border-l-2 border-border-light pl-3 py-1">
                 <div className="text-sm font-medium">{a.title}</div>
                 {a.details && a.type === 'note' && (
-                  <div className="text-sm text-gray-600 mt-0.5">{a.details}</div>
+                  <div className="text-sm text-text mt-0.5">{a.details}</div>
                 )}
-                <div className="text-xs text-gray-400 mt-0.5">
+                <div className="text-xs text-text-dim mt-0.5">
                   <Clock size={10} className="inline mr-1" />
                   {new Date(a.created_at).toLocaleString('cs')}
                 </div>
               </div>
             ))}
             {(contact.activities || []).length === 0 && (
-              <p className="text-sm text-gray-400">Žádná historie</p>
+              <p className="text-sm text-text-dim">Žádná historie</p>
             )}
           </div>
         </div>
@@ -234,9 +234,9 @@ export default function ContactDetail() {
 
 function AnalysisItem({ label, value, bad }: { label: string; value: string; bad: boolean }) {
   return (
-    <div className={`p-3 rounded-lg ${bad ? 'bg-red-50' : 'bg-green-50'}`}>
-      <div className="text-xs text-gray-500">{label}</div>
-      <div className={`font-bold flex items-center gap-1 ${bad ? 'text-red-700' : 'text-green-700'}`}>
+    <div className={`p-3 rounded-lg ${bad ? 'bg-danger/10' : 'bg-teal/10'}`}>
+      <div className="text-xs text-text-muted">{label}</div>
+      <div className={`font-bold flex items-center gap-1 ${bad ? 'text-danger' : 'text-teal'}`}>
         {bad ? <XCircle size={14} /> : <CheckCircle size={14} />}
         {value}
       </div>

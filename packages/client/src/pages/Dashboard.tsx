@@ -7,6 +7,12 @@ const STAGE_LABELS: Record<string, string> = {
   meeting: 'Schůzka', client: 'Klient', lost: 'Ztracený',
 };
 
+const STAGE_COLORS: Record<string, string> = {
+  new: 'text-text-muted', contacted: 'text-primary-light',
+  responded: 'text-teal', meeting: 'text-accent',
+  client: 'text-teal', lost: 'text-danger',
+};
+
 export default function Dashboard() {
   const [data, setData] = useState<any>(null);
 
@@ -14,75 +20,55 @@ export default function Dashboard() {
     get('/dashboard/overview').then(setData);
   }, []);
 
-  if (!data) return <div className="animate-pulse">Načítám...</div>;
+  if (!data) return <div className="text-text-muted animate-pulse p-8">Načítám...</div>;
 
   const stageMap = Object.fromEntries(
     (data.stages || []).map((s: any) => [s.stage, s.count])
   );
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+    <div className="animate-page">
+      <h1 className="heading-1 mb-6">Dashboard</h1>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-4 gap-4 mb-8">
-        <KpiCard
-          icon={<Users size={20} />}
-          label="Celkem kontaktů"
-          value={data.totalContacts}
-          sub={`+${data.thisMonth} tento měsíc`}
-          color="blue"
-        />
-        <KpiCard
-          icon={<Target size={20} />}
-          label="Průměrné skóre"
-          value={data.avgScore}
-          sub="/100 bodů"
-          color="orange"
-        />
-        <KpiCard
-          icon={<Mail size={20} />}
-          label="Odesláno emailů"
-          value={data.emailStats.totalSent}
-          sub={`${data.emailStats.totalOpened} otevřeno`}
-          color="green"
-        />
-        <KpiCard
-          icon={<TrendingUp size={20} />}
-          label="Klienti"
-          value={stageMap['client'] || 0}
-          sub={`${stageMap['meeting'] || 0} ve schůzkách`}
-          color="purple"
-        />
+        <KpiCard icon={<Users size={20} />} label="Celkem kontaktů" value={data.totalContacts} sub={`+${data.thisMonth} tento měsíc`} color="primary" />
+        <KpiCard icon={<Target size={20} />} label="Průměrné skóre" value={data.avgScore} sub="/100 bodů" color="accent" />
+        <KpiCard icon={<Mail size={20} />} label="Odesláno emailů" value={data.emailStats.totalSent} sub={`${data.emailStats.totalOpened} otevřeno`} color="teal" />
+        <KpiCard icon={<TrendingUp size={20} />} label="Klienti" value={stageMap['client'] || 0} sub={`${stageMap['meeting'] || 0} ve schůzkách`} color="danger" />
       </div>
 
       {/* Pipeline overview */}
-      <div className="bg-white rounded-lg border p-5 mb-6">
-        <h2 className="font-semibold mb-4">Pipeline</h2>
+      <div className="card mb-6">
+        <h2 className="heading-2 mb-4">Pipeline</h2>
         <div className="flex gap-2">
           {['new', 'contacted', 'responded', 'meeting', 'client', 'lost'].map(stage => (
-            <div key={stage} className="flex-1 text-center p-3 rounded-lg bg-gray-50">
-              <div className="text-2xl font-bold">{stageMap[stage] || 0}</div>
-              <div className="text-xs text-gray-500 mt-1">{STAGE_LABELS[stage]}</div>
+            <div key={stage} className="flex-1 text-center p-3 rounded-lg bg-surface">
+              <div className={`text-2xl font-bold ${STAGE_COLORS[stage] || 'text-text'}`}>
+                {stageMap[stage] || 0}
+              </div>
+              <div className="text-[10px] font-mono text-text-dim mt-1 uppercase tracking-wider">
+                {STAGE_LABELS[stage]}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Recent activity */}
-      <div className="bg-white rounded-lg border p-5">
-        <h2 className="font-semibold mb-4">Poslední aktivita</h2>
+      <div className="card">
+        <h2 className="heading-2 mb-4">Poslední aktivita</h2>
         {data.recentActivity.length === 0 ? (
-          <p className="text-gray-400 text-sm">Žádná aktivita</p>
+          <p className="text-text-dim text-sm">Žádná aktivita</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {data.recentActivity.map((a: any) => (
-              <div key={a.id} className="flex items-center gap-3 text-sm py-1.5 border-b last:border-0">
-                <span className="text-xs text-gray-400 w-32">
+              <div key={a.id} className="flex items-center gap-3 text-sm py-2 border-b border-border last:border-0">
+                <span className="text-[11px] font-mono text-text-dim w-36">
                   {new Date(a.created_at).toLocaleString('cs')}
                 </span>
-                <span className="font-medium">{a.business_name || a.domain || 'Kontakt'}</span>
-                <span className="text-gray-500">{a.title}</span>
+                <span className="font-medium text-text">{a.business_name || a.domain || 'Kontakt'}</span>
+                <span className="text-text-muted">{a.title}</span>
               </div>
             ))}
           </div>
@@ -97,19 +83,19 @@ function KpiCard({ icon, label, value, sub, color }: {
   sub: string; color: string;
 }) {
   const colors: Record<string, string> = {
-    blue: 'bg-blue-50 text-blue-600',
-    orange: 'bg-orange-50 text-orange-600',
-    green: 'bg-green-50 text-green-600',
-    purple: 'bg-purple-50 text-purple-600',
+    primary: 'bg-primary/10 text-primary',
+    accent: 'bg-accent/10 text-accent',
+    teal: 'bg-teal/10 text-teal',
+    danger: 'bg-danger/10 text-danger',
   };
   return (
-    <div className="bg-white rounded-lg border p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <div className={`p-1.5 rounded ${colors[color]}`}>{icon}</div>
-        <span className="text-sm text-gray-500">{label}</span>
+    <div className="card-hover">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className={`p-2 rounded-lg ${colors[color]}`}>{icon}</div>
+        <span className="label mb-0">{label}</span>
       </div>
-      <div className="text-3xl font-bold">{value}</div>
-      <div className="text-xs text-gray-400 mt-1">{sub}</div>
+      <div className="text-3xl font-semibold text-text">{value}</div>
+      <div className="text-xs text-text-dim mt-1 font-mono">{sub}</div>
     </div>
   );
 }
