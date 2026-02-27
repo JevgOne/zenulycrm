@@ -16,10 +16,25 @@ function extractEmails(html: string): string[] {
 }
 
 function extractPhones(html: string): string[] {
-  // Czech phone patterns: +420 XXX XXX XXX, 420XXXXXXXXX, XXX XXX XXX
-  const re = /(?:\+?420[\s\-]?)?(?:\d{3}[\s\-]?\d{3}[\s\-]?\d{3})/g;
-  const found = html.match(re) || [];
-  return [...new Set(found.map(p => p.replace(/[\s\-]/g, '')).filter(p => p.length >= 9))];
+  // Strip HTML tags to avoid picking up IDs/attributes
+  const text = html.replace(/<[^>]+>/g, ' ');
+
+  // Czech phone patterns: +420 XXX XXX XXX, 420 XXX XXX XXX
+  const withPrefix = /(?:\+420|00420)[\s\-\.]*(\d{3})[\s\-\.]*(\d{3})[\s\-\.]*(\d{3})/g;
+  // Standalone 9 digits starting with valid Czech prefixes (6,7 = mobile, 2-5 = landline)
+  const standalone = /(?<!\d)([2-7]\d{2})[\s\-\.]+(\d{3})[\s\-\.]+(\d{3})(?!\d)/g;
+
+  const phones: string[] = [];
+  let m;
+
+  while ((m = withPrefix.exec(text)) !== null) {
+    phones.push(`+420${m[1]}${m[2]}${m[3]}`);
+  }
+  while ((m = standalone.exec(text)) !== null) {
+    phones.push(`+420${m[1]}${m[2]}${m[3]}`);
+  }
+
+  return [...new Set(phones)];
 }
 
 function extractTitle(html: string): string {
@@ -165,10 +180,17 @@ async function analyzeUrl(url: string): Promise<any> {
   if (loadTime > 5) score += 10;
   score = Math.min(score, 100);
 
+  // Extract business name: prefer og:site_name > title parts > domain
+  const ogSiteName = extractMeta(html, 'og:site_name');
+  const titleParts = title.split(/[\-–|»]/).map(s => s.trim()).filter(Boolean);
+  const genericTitles = ['úvodní stránka', 'homepage', 'home', 'hlavní stránka', 'vítejte'];
+  const bestTitle = titleParts.find(p => !genericTitles.includes(p.toLowerCase())) || titleParts[0] || '';
+  const businessName = ogSiteName || bestTitle || domain;
+
   return {
     url: finalUrl,
     domain,
-    business_name: title.split(/[\-–|]/).map(s => s.trim())[0] || domain,
+    business_name: businessName,
     email: emails[0] || null,
     phone: phones[0] || null,
     all_emails: emails,
