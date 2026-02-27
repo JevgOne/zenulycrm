@@ -20,6 +20,7 @@ import sequencesRouter from './routes/sequences';
 import trackingRouter from './routes/tracking';
 import remindersRouter from './routes/reminders';
 import usersRouter from './routes/users';
+import scannerRouter from './routes/scanner';
 
 // Services
 import { startScheduler } from './services/scheduler';
@@ -63,6 +64,7 @@ async function start() {
   app.use('/api/sequences', requireAuth, sequencesRouter);
   app.use('/api/reminders', requireAuth, remindersRouter);
   app.use('/api/users', requireAuth, usersRouter);
+  app.use('/api/scanner', requireAuth, scannerRouter);
 
   // In production, serve React build
   if (process.env.NODE_ENV === 'production') {

@@ -10,6 +10,7 @@ import Templates from './pages/Templates';
 import Import from './pages/Import';
 import Sequences from './pages/Sequences';
 import Settings from './pages/Settings';
+import Scanner from './pages/Scanner';
 import { isLoggedIn } from './api/client';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -33,6 +34,7 @@ function AdminLayout() {
             <Route path="/campaigns" element={<Campaigns />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/sequences" element={<Sequences />} />
+            <Route path="/scanner" element={<Scanner />} />
             <Route path="/import" element={<Import />} />
             <Route path="/settings" element={<Settings />} />
           </Routes>

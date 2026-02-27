@@ -55,6 +55,12 @@ router.get('/stages', async (_req: Request, res: Response) => {
   res.json(rows);
 });
 
+// GET /api/contacts/sources - Count per source
+router.get('/sources', async (_req: Request, res: Response) => {
+  const rows = await db.all('SELECT source, COUNT(*) as count FROM contacts GROUP BY source ORDER BY count DESC');
+  res.json(rows);
+});
+
 // GET /api/contacts/categories
 router.get('/categories', async (_req: Request, res: Response) => {
   const rows = await db.all('SELECT DISTINCT category FROM contacts WHERE category IS NOT NULL ORDER BY category');

@@ -1,17 +1,18 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Kanban, Mail, FileText,
-  Repeat, Download, Settings, LogOut
+  Repeat, Download, Settings, LogOut, Radar
 } from 'lucide-react';
 
 const nav = [
   { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/admin/contacts', icon: Users, label: 'Kontakty' },
   { to: '/admin/pipeline', icon: Kanban, label: 'Pipeline' },
+  { to: '/admin/scanner', icon: Radar, label: 'Scanner' },
   { to: '/admin/campaigns', icon: Mail, label: 'Kampaně' },
   { to: '/admin/templates', icon: FileText, label: 'Šablony' },
   { to: '/admin/sequences', icon: Repeat, label: 'Sekvence' },
-  { to: '/admin/import', icon: Download, label: 'Import / Scan' },
+  { to: '/admin/import', icon: Download, label: 'Import' },
   { to: '/admin/settings', icon: Settings, label: 'Nastavení' },
 ];
 

@@ -4,8 +4,15 @@ import { get, post } from '../api/client';
 import {
   Plus, Search, Upload, Trash2, Mail, Phone, MapPin,
   Building2, User, ChevronLeft, ChevronRight, Filter, X,
-  Users, UserPlus, ExternalLink
+  Users, UserPlus, ExternalLink, Database, Globe, FileSpreadsheet, PenLine
 } from 'lucide-react';
+
+const SOURCES = [
+  { key: '', label: 'Vše', icon: Database },
+  { key: 'xml_import', label: 'Import', icon: FileSpreadsheet },
+  { key: 'web_scan', label: 'Web Scanner', icon: Globe },
+  { key: 'manual', label: 'Manuální', icon: PenLine },
+];
 
 const STAGES = [
   { key: '', label: 'Vše', icon: Users },
@@ -52,8 +59,10 @@ export default function Contacts() {
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+  const [sourceCounts, setSourceCounts] = useState<any[]>([]);
 
   const stage = searchParams.get('stage') || '';
+  const source = searchParams.get('source') || '';
   const category = searchParams.get('category') || '';
   const city = searchParams.get('city') || '';
   const page = Number(searchParams.get('page') || '1');
@@ -61,16 +70,18 @@ export default function Contacts() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (stage) params.set('stage', stage);
+    if (source) params.set('source', source);
     if (category) params.set('category', category);
     if (city) params.set('city', city);
     if (search) params.set('q', search);
     params.set('page', String(page));
     params.set('limit', '30');
     get(`/contacts?${params}`).then(setData);
-  }, [stage, category, city, search, page]);
+  }, [stage, source, category, city, search, page]);
 
   useEffect(() => {
     get('/contacts/stages').then(setStageCounts);
+    get('/contacts/sources').then(setSourceCounts);
     get('/contacts/categories').then(setCategories);
     get('/contacts/cities').then(setCities);
   }, []);
@@ -103,6 +114,12 @@ export default function Contacts() {
     stageCounts.forEach((s: any) => { map[s.stage] = s.count; });
     return map;
   }, [stageCounts]);
+
+  const sourceCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    sourceCounts.forEach((s: any) => { map[s.source] = s.count; });
+    return map;
+  }, [sourceCounts]);
 
   const totalContacts = useMemo(() =>
     stageCounts.reduce((sum: number, s: any) => sum + s.count, 0),
@@ -140,6 +157,33 @@ export default function Contacts() {
             <Plus size={14} /> Nový kontakt
           </button>
         </div>
+      </div>
+
+      {/* Source tabs (databáze) */}
+      <div className="flex gap-1 mb-3 overflow-x-auto">
+        {SOURCES.map(s => {
+          const count = s.key === '' ? totalContacts : (sourceCountMap[s.key] || 0);
+          const isActive = source === s.key;
+          return (
+            <button
+              key={s.key}
+              onClick={() => setFilter('source', s.key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all border ${
+                isActive
+                  ? 'bg-primary/12 text-primary-light border-primary/30'
+                  : 'bg-transparent text-text-muted border-transparent hover:text-text hover:bg-surface2/50'
+              }`}
+            >
+              <s.icon size={15} strokeWidth={1.5} />
+              {s.label}
+              <span className={`text-[11px] font-mono px-1.5 py-0.5 rounded-full ${
+                isActive ? 'bg-primary/15 text-primary-light' : 'bg-border/50 text-text-dim'
+              }`}>
+                {count.toLocaleString('cs')}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Stage tabs */}
