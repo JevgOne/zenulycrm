@@ -1,9 +1,29 @@
+import fs from 'fs';
+import path from 'path';
 import db from '../db/connection';
 
 interface SendResult {
   success: boolean;
   resendId?: string;
   error?: string;
+}
+
+interface EmailAttachment {
+  filename: string;
+  content: string; // base64
+  content_type?: string;
+}
+
+function getMockupAttachment(contactId: number): EmailAttachment | null {
+  const mockupPath = path.join(__dirname, '../../mockups', `${contactId}_mockup.png`);
+  if (!fs.existsSync(mockupPath)) return null;
+
+  const content = fs.readFileSync(mockupPath).toString('base64');
+  return {
+    filename: 'redesign-mockup.png',
+    content,
+    content_type: 'image/png',
+  };
 }
 
 export async function sendEmail(sentEmailId: number): Promise<SendResult> {
@@ -14,6 +34,9 @@ export async function sendEmail(sentEmailId: number): Promise<SendResult> {
 
   if (!apiKey) {
     console.log(`[DEV] Would send email to ${email.to_email}: "${email.subject}"`);
+    const mockup = getMockupAttachment(email.contact_id);
+    if (mockup) console.log(`[DEV] Would attach mockup: ${mockup.filename}`);
+
     await db.run("UPDATE sent_emails SET status = 'sent', sent_at = datetime('now') WHERE id = ?", sentEmailId);
 
     if (email.campaign_id) {
@@ -30,14 +53,26 @@ export async function sendEmail(sentEmailId: number): Promise<SendResult> {
   const trackingPixel = `<img src="${getBaseUrl()}/api/track/open/${email.tracking_id}" width="1" height="1" style="display:none" />`;
   const bodyWithTracking = (email.body_html || email.subject) + trackingPixel;
 
+  // Check for mockup attachment
+  const mockup = getMockupAttachment(email.contact_id);
+  const attachments = mockup ? [{ filename: mockup.filename, content: mockup.content }] : undefined;
+
   try {
+    const emailPayload: any = {
+      from: `${process.env.SENDER_NAME || 'Weblyx'} <${process.env.SENDER_EMAIL || 'info@weblyx.cz'}>`,
+      to: [email.to_email],
+      subject: email.subject,
+      html: bodyWithTracking,
+    };
+
+    if (attachments) {
+      emailPayload.attachments = attachments;
+    }
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: `${process.env.SENDER_NAME || 'Weblyx'} <${process.env.SENDER_EMAIL || 'info@weblyx.cz'}>`,
-        to: [email.to_email], subject: email.subject, html: bodyWithTracking,
-      }),
+      body: JSON.stringify(emailPayload),
     });
 
     const data: any = await response.json();
@@ -49,7 +84,7 @@ export async function sendEmail(sentEmailId: number): Promise<SendResult> {
       }
       await db.run(`
         INSERT INTO activities (contact_id, type, title, details) VALUES (?, 'email_sent', 'Email odeslán', ?)
-      `, email.contact_id, JSON.stringify({ subject: email.subject, to: email.to_email }));
+      `, email.contact_id, JSON.stringify({ subject: email.subject, to: email.to_email, has_mockup: !!mockup }));
       await db.run("UPDATE contacts SET last_contacted_at = datetime('now') WHERE id = ?", email.contact_id);
       return { success: true, resendId: data.id };
     } else {

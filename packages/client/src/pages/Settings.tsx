@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Plus, Pencil, Trash2, Key, Shield, Eye, EyeOff, Save, X, AlertTriangle } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Key, Shield, Eye, EyeOff, Save, X, AlertTriangle, Bot, Play, Clock } from 'lucide-react';
 import { get, post, put, del } from '../api/client';
 import { getUser } from '../api/client';
 
@@ -12,7 +12,7 @@ interface User {
 }
 
 export default function Settings() {
-  const [tab, setTab] = useState<'users' | 'api' | 'general'>('users');
+  const [tab, setTab] = useState<'users' | 'api' | 'autopilot' | 'general'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddUser, setShowAddUser] = useState(false);
@@ -38,6 +38,7 @@ export default function Settings() {
   const tabs = [
     { id: 'users' as const, label: 'Uživatelé', icon: Users },
     { id: 'api' as const, label: 'API Klíče', icon: Key },
+    { id: 'autopilot' as const, label: 'Autopilot', icon: Bot },
     { id: 'general' as const, label: 'Obecné', icon: Shield },
   ];
 
@@ -211,6 +212,9 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* Autopilot Tab */}
+      {tab === 'autopilot' && <AutopilotSettings />}
 
       {/* General Tab */}
       {tab === 'general' && (
@@ -388,6 +392,175 @@ function PasswordForm({ userId, onSave, onCancel }: {
         </button>
       </div>
     </form>
+  );
+}
+
+function AutopilotSettings() {
+  const [config, setConfig] = useState<any>(null);
+  const [log, setLog] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    get('/autopilot/config').then(setConfig);
+    get('/autopilot/log?limit=20').then(setLog);
+  }, []);
+
+  const saveConfig = async (updates: any) => {
+    setSaving(true);
+    try {
+      const updated = await put('/autopilot/config', updates);
+      setConfig(updated);
+    } catch (err: any) {
+      alert(`Chyba: ${err.message}`);
+    }
+    setSaving(false);
+  };
+
+  const runNow = async () => {
+    setRunning(true);
+    try {
+      const result: any = await post('/autopilot/run', {});
+      alert(`Zpracováno: ${result.new_contacts_processed} nových, ${result.followups_processed} follow-upů`);
+      get('/autopilot/log?limit=20').then(setLog);
+    } catch (err: any) {
+      alert(`Chyba: ${err.message}`);
+    }
+    setRunning(false);
+  };
+
+  if (!config) return <div className="text-center py-12 text-text-dim">Načítání...</div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="heading-2">Autopilot</h2>
+        <button onClick={runNow} disabled={running}
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-xl hover:bg-primary/90 disabled:opacity-60 transition-colors">
+          <Play size={14} /> {running ? 'Zpracovávám...' : 'Spustit nyní'}
+        </button>
+      </div>
+
+      <div className="bg-surface2 rounded-xl border border-border-light p-6 space-y-5">
+        {/* Master toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-text">Autopilot aktivní</h3>
+            <p className="text-xs text-text-dim mt-0.5">Automaticky zpracovává nové kontakty</p>
+          </div>
+          <button
+            onClick={() => saveConfig({ enabled: !config.enabled })}
+            className={`w-12 h-7 rounded-full transition-colors relative ${config.enabled ? 'bg-primary' : 'bg-border'}`}
+          >
+            <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${config.enabled ? 'left-6' : 'left-1'}`} />
+          </button>
+        </div>
+
+        {/* Min score */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-text">Minimální score</h3>
+            <p className="text-xs text-text-dim mt-0.5">Kontakty s nižším skóre se přeskočí</p>
+          </div>
+          <input type="number" value={config.min_score} min={0} max={100}
+            onChange={e => saveConfig({ min_score: Number(e.target.value) })}
+            className="w-20 text-center bg-surface border border-border-light rounded-lg px-2 py-1.5 text-sm text-text"
+          />
+        </div>
+
+        {/* Auto email toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-text">Auto AI email</h3>
+            <p className="text-xs text-text-dim mt-0.5">Automaticky generuje a zařadí email do fronty</p>
+          </div>
+          <button
+            onClick={() => saveConfig({ auto_email: !config.auto_email })}
+            className={`w-12 h-7 rounded-full transition-colors relative ${config.auto_email ? 'bg-primary' : 'bg-border'}`}
+          >
+            <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${config.auto_email ? 'left-6' : 'left-1'}`} />
+          </button>
+        </div>
+
+        {/* Auto mockup toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-text">Auto mockup</h3>
+            <p className="text-xs text-text-dim mt-0.5">Automaticky generuje redesign mockup</p>
+          </div>
+          <button
+            onClick={() => saveConfig({ auto_mockup: !config.auto_mockup })}
+            className={`w-12 h-7 rounded-full transition-colors relative ${config.auto_mockup ? 'bg-primary' : 'bg-border'}`}
+          >
+            <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${config.auto_mockup ? 'left-6' : 'left-1'}`} />
+          </button>
+        </div>
+
+        {/* Auto follow-up toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-text">Auto follow-up</h3>
+            <p className="text-xs text-text-dim mt-0.5">Automaticky pošle follow-up po X dnech</p>
+          </div>
+          <button
+            onClick={() => saveConfig({ auto_followup: !config.auto_followup })}
+            className={`w-12 h-7 rounded-full transition-colors relative ${config.auto_followup ? 'bg-primary' : 'bg-border'}`}
+          >
+            <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${config.auto_followup ? 'left-6' : 'left-1'}`} />
+          </button>
+        </div>
+
+        {/* Follow-up days */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-text">Follow-up po (dní)</h3>
+            <p className="text-xs text-text-dim mt-0.5">Počet dní po prvním emailu</p>
+          </div>
+          <input type="number" value={config.followup_days} min={1} max={30}
+            onChange={e => saveConfig({ followup_days: Number(e.target.value) })}
+            className="w-20 text-center bg-surface border border-border-light rounded-lg px-2 py-1.5 text-sm text-text"
+          />
+        </div>
+
+        {/* Max per run */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-text">Max kontaktů za běh</h3>
+            <p className="text-xs text-text-dim mt-0.5">Omezení pro úsporu API nákladů</p>
+          </div>
+          <input type="number" value={config.max_per_run} min={1} max={20}
+            onChange={e => saveConfig({ max_per_run: Number(e.target.value) })}
+            className="w-20 text-center bg-surface border border-border-light rounded-lg px-2 py-1.5 text-sm text-text"
+          />
+        </div>
+      </div>
+
+      {/* Log */}
+      <div>
+        <h3 className="heading-2 mb-3 flex items-center gap-2"><Clock size={16} /> Autopilot log</h3>
+        <div className="bg-surface2 rounded-xl border border-border-light divide-y divide-border-light max-h-80 overflow-y-auto">
+          {log.map((entry: any) => (
+            <div key={entry.id} className="px-4 py-3 flex items-start justify-between">
+              <div>
+                <div className="text-sm text-text">
+                  <span className={`inline-block w-2 h-2 rounded-full mr-2 ${entry.status === 'success' ? 'bg-teal' : 'bg-danger'}`} />
+                  {entry.details || entry.action}
+                </div>
+                {entry.business_name && (
+                  <div className="text-xs text-text-dim mt-0.5">{entry.business_name || entry.domain}</div>
+                )}
+              </div>
+              <div className="text-xs text-text-dim whitespace-nowrap ml-3">
+                {new Date(entry.created_at).toLocaleString('cs')}
+              </div>
+            </div>
+          ))}
+          {log.length === 0 && (
+            <div className="text-center py-8 text-sm text-text-dim">Žádné záznamy. Autopilot ještě neběžel.</div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

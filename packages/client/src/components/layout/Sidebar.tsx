@@ -60,7 +60,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-3 border-t border-border">
+      <div className="p-3 border-t border-border space-y-2">
         <button
           onClick={handleLogout}
           className="flex items-center gap-2.5 px-3 py-2 w-full text-[13px] text-text-dim hover:text-text hover:bg-surface2 rounded-lg transition-all"
@@ -68,6 +68,14 @@ export default function Sidebar() {
           <LogOut size={16} strokeWidth={1.5} />
           Odhlásit se
         </button>
+        <a
+          href="https://weblyx.cz"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-[10px] text-text-dim/50 hover:text-text-dim transition-colors"
+        >
+          CRM systém vytvořil weblyx.cz
+        </a>
       </div>
     </aside>
   );

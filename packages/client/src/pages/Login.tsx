@@ -114,6 +114,14 @@ export default function Login() {
         <p className="text-center text-xs text-text-dim mt-6 font-mono">
           &copy; {new Date().getFullYear()} Zenuly CRM
         </p>
+        <a
+          href="https://weblyx.cz"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-[11px] text-text-dim/40 hover:text-text-dim transition-colors mt-2"
+        >
+          CRM systém vytvořil weblyx.cz
+        </a>
       </div>
     </div>
   );

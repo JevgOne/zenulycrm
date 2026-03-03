@@ -13,6 +13,7 @@ import Sequences from './pages/Sequences';
 import Settings from './pages/Settings';
 import Scanner from './pages/Scanner';
 import { isLoggedIn } from './api/client';
+import ChatAssistant from './components/ChatAssistant';
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -86,6 +87,7 @@ function AdminLayout() {
             <Route path="/settings" element={<Settings />} />
           </Routes>
         </main>
+        <ChatAssistant />
       </div>
     </ProtectedRoute>
   );

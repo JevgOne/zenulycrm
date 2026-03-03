@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { get, post, del } from '../api/client';
-import { Plus, Mail, Trash2, Play } from 'lucide-react';
+import { Plus, Mail, Trash2, Play, Sparkles, Loader2 } from 'lucide-react';
 
 export default function Campaigns() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -86,13 +86,14 @@ function CreateCampaignModal({ templates, onClose, onCreated }: {
 }) {
   const [name, setName] = useState('');
   const [templateId, setTemplateId] = useState('');
+  const [useAi, setUseAi] = useState(false);
   const [filters, setFilters] = useState({ stage: ['new'], minScore: 30, category: '', city: '' });
 
   const handleCreate = async () => {
     await post('/campaigns', {
       name,
-      template_id: Number(templateId),
-      filter_json: filters,
+      template_id: useAi ? null : Number(templateId),
+      filter_json: { ...filters, use_ai_email: useAi },
     });
     onCreated();
   };
@@ -106,11 +107,35 @@ function CreateCampaignModal({ templates, onClose, onCreated }: {
             onChange={e => setName(e.target.value)}
             className="input w-full" />
 
-          <select value={templateId} onChange={e => setTemplateId(e.target.value)}
-            className="input w-full">
-            <option value="">Vybrat šablonu...</option>
-            {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
+          {/* AI or Template toggle */}
+          <div className="flex gap-2">
+            <button onClick={() => setUseAi(false)}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                !useAi ? 'bg-primary text-white' : 'bg-border text-text-muted hover:bg-surface2'
+              }`}>
+              <Mail size={14} /> Šablona
+            </button>
+            <button onClick={() => setUseAi(true)}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                useAi ? 'bg-primary text-white' : 'bg-border text-text-muted hover:bg-surface2'
+              }`}>
+              <Sparkles size={14} /> AI Email
+            </button>
+          </div>
+
+          {useAi ? (
+            <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
+              <p className="text-sm text-text-muted">
+                Claude AI napíše unikátní email pro každý kontakt na základě dat z analýzy webu.
+              </p>
+            </div>
+          ) : (
+            <select value={templateId} onChange={e => setTemplateId(e.target.value)}
+              className="input w-full">
+              <option value="">Vybrat šablonu...</option>
+              {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          )}
 
           <div>
             <label className="label">Minimální score:</label>
@@ -129,7 +154,7 @@ function CreateCampaignModal({ templates, onClose, onCreated }: {
 
           <div className="flex justify-end gap-2">
             <button onClick={onClose} className="btn-secondary">Zrušit</button>
-            <button onClick={handleCreate} disabled={!name || !templateId} className="btn-primary">
+            <button onClick={handleCreate} disabled={!name || (!useAi && !templateId)} className="btn-primary">
               Vytvořit
             </button>
           </div>

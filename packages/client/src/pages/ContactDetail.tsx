@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { get, put, post, del, patch } from '../api/client';
 import {
   Globe, Mail, Phone, MapPin, Tag, Clock, ArrowLeft,
-  Trash2, AlertTriangle, CheckCircle, XCircle
+  Trash2, AlertTriangle, CheckCircle, XCircle, Image, Loader2, Sparkles
 } from 'lucide-react';
 
 const STAGES = ['new', 'contacted', 'responded', 'meeting', 'client', 'lost'];
@@ -19,9 +19,13 @@ export default function ContactDetail() {
   const [note, setNote] = useState('');
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<any>({});
+  const [mockupStatus, setMockupStatus] = useState<any>(null);
+  const [mockupGenerating, setMockupGenerating] = useState(false);
+  const [showMockupView, setShowMockupView] = useState<'original' | 'mockup' | null>(null);
 
   useEffect(() => {
     get(`/contacts/${id}`).then(c => { setContact(c); setForm(c); });
+    get(`/mockup/${id}/status`).then(setMockupStatus).catch(() => {});
   }, [id]);
 
   if (!contact) return <div className="animate-pulse">Načítám...</div>;
@@ -49,6 +53,19 @@ export default function ContactDetail() {
     if (!confirm('Opravdu smazat tento kontakt?')) return;
     await del(`/contacts/${id}`);
     navigate('/contacts');
+  };
+
+  const handleGenerateMockup = async () => {
+    setMockupGenerating(true);
+    try {
+      await post(`/mockup/generate/${id}`, {});
+      const status = await get(`/mockup/${id}/status`);
+      setMockupStatus(status);
+    } catch (err: any) {
+      alert(`Chyba: ${err.message}`);
+    } finally {
+      setMockupGenerating(false);
+    }
   };
 
   const outdatedTech = (() => {
@@ -191,6 +208,59 @@ export default function ContactDetail() {
               )}
             </div>
           )}
+
+          {/* Redesign Mockup */}
+          <div className="card">
+            <h2 className="heading-2 mb-3 flex items-center gap-2">
+              <Image size={18} /> Redesign Mockup
+            </h2>
+
+            {mockupStatus?.mockupExists ? (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <button onClick={() => setShowMockupView('original')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      showMockupView === 'original' ? 'bg-danger/20 text-danger' : 'bg-border text-text-muted hover:bg-surface2'
+                    }`}>
+                    Originál
+                  </button>
+                  <button onClick={() => setShowMockupView('mockup')}
+                    className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      showMockupView === 'mockup' ? 'bg-teal/20 text-teal' : 'bg-border text-text-muted hover:bg-surface2'
+                    }`}>
+                    Nový design
+                  </button>
+                </div>
+
+                {showMockupView && (
+                  <div className="border border-border-light rounded-lg overflow-hidden">
+                    <img
+                      src={`/api/mockup/${id}${showMockupView === 'original' ? '/original' : ''}`}
+                      alt={showMockupView === 'original' ? 'Originální web' : 'Redesign mockup'}
+                      className="w-full"
+                    />
+                  </div>
+                )}
+
+                <button onClick={handleGenerateMockup} disabled={mockupGenerating}
+                  className="btn-secondary w-full flex items-center justify-center gap-1.5 text-sm">
+                  {mockupGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                  {mockupGenerating ? 'Generuji nový...' : 'Přegenerovat'}
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-sm text-text-muted mb-3">
+                  AI vytvoří screenshot starého webu a navrhne moderní redesign.
+                </p>
+                <button onClick={handleGenerateMockup} disabled={mockupGenerating}
+                  className="btn-primary flex items-center gap-1.5 mx-auto">
+                  {mockupGenerating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  {mockupGenerating ? 'Generuji mockup...' : 'Generovat mockup'}
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Add note */}
           <div className="card">

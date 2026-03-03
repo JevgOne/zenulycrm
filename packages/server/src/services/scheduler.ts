@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { processEmailQueue } from './email-service';
 import { processSequences } from './sequence-service';
+import { processNewContacts, processFollowups } from './autopilot-service';
 import db from '../db/connection';
 
 export function startScheduler() {
@@ -24,6 +25,26 @@ export function startScheduler() {
         await db.run("UPDATE campaigns SET status = 'completed', completed_at = datetime('now') WHERE id = ?", campaign.id);
         console.log(`[Scheduler] Campaign "${campaign.name}" completed`);
       }
+    }
+  });
+
+  // Autopilot: process new contacts every 15 minutes
+  cron.schedule('*/15 * * * *', async () => {
+    try {
+      const processed = await processNewContacts();
+      if (processed > 0) console.log(`[Autopilot] Processed ${processed} new contacts`);
+    } catch (err: any) {
+      console.error('[Autopilot] Error processing new contacts:', err.message);
+    }
+  });
+
+  // Autopilot: process follow-ups every hour
+  cron.schedule('0 * * * *', async () => {
+    try {
+      const processed = await processFollowups();
+      if (processed > 0) console.log(`[Autopilot] Processed ${processed} follow-ups`);
+    } catch (err: any) {
+      console.error('[Autopilot] Error processing follow-ups:', err.message);
     }
   });
 

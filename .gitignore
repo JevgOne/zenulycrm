@@ -9,3 +9,4 @@ packages/server/data/
 .vercel
 .env*.local
 packages/server/dist/
+packages/server/mockups/

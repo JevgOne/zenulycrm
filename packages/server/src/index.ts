@@ -21,12 +21,17 @@ import trackingRouter from './routes/tracking';
 import remindersRouter from './routes/reminders';
 import usersRouter from './routes/users';
 import scannerRouter from './routes/scanner';
+import aiRouter from './routes/ai';
+import mockupRouter from './routes/mockup';
+import autopilotRouter from './routes/autopilot';
 
 // Services
 import { startScheduler } from './services/scheduler';
+import { initAutopilotTable } from './services/autopilot-service';
 
 async function start() {
   await initDatabase();
+  await initAutopilotTable();
 
   const app = express();
   const PORT = process.env.PORT || 3001;
@@ -65,6 +70,19 @@ async function start() {
   app.use('/api/reminders', requireAuth, remindersRouter);
   app.use('/api/users', requireAuth, usersRouter);
   app.use('/api/scanner', requireAuth, scannerRouter);
+  app.use('/api/ai', requireAuth, aiRouter);
+  app.use('/api/mockup', requireAuth, mockupRouter);
+  app.use('/api/autopilot', requireAuth, autopilotRouter);
+
+  // Settings status endpoint (check API key configuration)
+  app.get('/api/settings/status', requireAuth, (_req, res) => {
+    res.json({
+      resend_configured: !!process.env.RESEND_API_KEY,
+      anthropic_configured: !!process.env.ANTHROPIC_API_KEY,
+      sender_email: process.env.SENDER_EMAIL || 'info@weblyx.cz',
+      sender_name: process.env.SENDER_NAME || 'Weblyx',
+    });
+  });
 
   // In production, serve React build
   if (process.env.NODE_ENV === 'production') {

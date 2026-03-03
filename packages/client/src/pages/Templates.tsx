@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { get, post, put, del } from '../api/client';
-import { Plus, Edit2, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Sparkles, Loader2 } from 'lucide-react';
 
 const DEFAULT_TEMPLATE = `Dobrý den{{kontakt ? ', ' + kontakt : ''}},
 
@@ -22,6 +22,9 @@ export default function Templates() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [editing, setEditing] = useState<any>(null);
   const [preview, setPreview] = useState<any>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiContactId, setAiContactId] = useState('');
+  const [showAiModal, setShowAiModal] = useState(false);
 
   useEffect(() => {
     get('/templates').then(setTemplates);
@@ -44,16 +47,42 @@ export default function Templates() {
     setPreview(data);
   };
 
+  const handleAiGenerate = async () => {
+    if (!aiContactId) return;
+    setAiGenerating(true);
+    try {
+      const result: any = await post('/ai/generate-email', { contact_id: Number(aiContactId) });
+      setEditing({
+        name: `AI: ${result.subject.substring(0, 40)}`,
+        subject: result.subject,
+        body_html: result.body_html,
+        body_text: result.body_text,
+        category: 'ai-generated',
+      });
+      setShowAiModal(false);
+      setAiContactId('');
+    } catch (err: any) {
+      alert(`Chyba AI: ${err.message}`);
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   return (
     <div className="animate-page">
       <div className="flex items-center justify-between mb-6">
         <h1 className="heading-1">Email šablony</h1>
-        <button onClick={() => setEditing({
-          name: '', subject: '{{firma}} - Vaše webová stránka má {{pocet_problemu}} problémů',
-          body_html: DEFAULT_TEMPLATE, category: ''
-        })} className="btn-primary flex items-center gap-1.5">
-          <Plus size={16} /> Nová šablona
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowAiModal(true)} className="btn-secondary flex items-center gap-1.5">
+            <Sparkles size={16} /> AI Generovat
+          </button>
+          <button onClick={() => setEditing({
+            name: '', subject: '{{firma}} - Vaše webová stránka má {{pocet_problemu}} problémů',
+            body_html: DEFAULT_TEMPLATE, category: ''
+          })} className="btn-primary flex items-center gap-1.5">
+            <Plus size={16} /> Nová šablona
+          </button>
+        </div>
       </div>
 
       {/* Available variables */}
@@ -136,6 +165,36 @@ export default function Templates() {
               {preview.body}
             </div>
             <button onClick={() => setPreview(null)} className="btn-secondary mt-4">Zavřít</button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Generate modal */}
+      {showAiModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowAiModal(false)}>
+          <div className="bg-surface2 rounded-2xl border border-border-light p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-text mb-2 flex items-center gap-2">
+              <Sparkles size={20} className="text-primary-light" /> AI Email Generátor
+            </h2>
+            <p className="text-sm text-text-muted mb-4">
+              Claude AI napíše personalizovaný email na základě dat kontaktu (score, problémy, CMS...).
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="label">ID kontaktu:</label>
+                <input type="number" placeholder="Např. 1" value={aiContactId}
+                  onChange={e => setAiContactId(e.target.value)}
+                  className="input w-full" />
+              </div>
+              <div className="flex justify-end gap-2">
+                <button onClick={() => setShowAiModal(false)} className="btn-secondary">Zrušit</button>
+                <button onClick={handleAiGenerate} disabled={!aiContactId || aiGenerating}
+                  className="btn-primary flex items-center gap-1.5">
+                  {aiGenerating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  {aiGenerating ? 'Generuji...' : 'Generovat'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
