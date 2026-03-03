@@ -1,8 +1,19 @@
 import Anthropic from '@anthropic-ai/sdk';
-import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import db from '../db/connection';
+
+async function launchBrowser() {
+  try {
+    const puppeteer = await import('puppeteer');
+    return puppeteer.default.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+  } catch {
+    throw new Error('Puppeteer is not available in this environment (serverless). Mockups can only be generated locally.');
+  }
+}
 
 const MOCKUPS_DIR = path.join(__dirname, '../../mockups');
 
@@ -24,10 +35,7 @@ export async function screenshotWebsite(url: string): Promise<Buffer> {
     normalizedUrl = `https://${normalizedUrl}`;
   }
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();
@@ -111,10 +119,7 @@ Viewport: 1280x900px.`;
 }
 
 export async function renderMockupImage(html: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  });
+  const browser = await launchBrowser();
 
   try {
     const page = await browser.newPage();

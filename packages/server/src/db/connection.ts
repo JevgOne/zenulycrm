@@ -1,24 +1,31 @@
 import { createClient, type Client } from '@libsql/client';
 
-const client: Client = createClient({
-  url: process.env.TURSO_DATABASE_URL || 'file:./data/lead-crm.db',
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
+let client: Client;
+
+function getClient(): Client {
+  if (!client) {
+    client = createClient({
+      url: (process.env.TURSO_DATABASE_URL || 'file:./data/lead-crm.db').trim(),
+      authToken: process.env.TURSO_AUTH_TOKEN?.trim(),
+    });
+  }
+  return client;
+}
 
 // DB wrapper with convenience methods
 export const db = {
   async get(sql: string, ...args: any[]): Promise<any> {
-    const result = await client.execute({ sql, args });
+    const result = await getClient().execute({ sql, args });
     return result.rows[0] || null;
   },
 
   async all(sql: string, ...args: any[]): Promise<any[]> {
-    const result = await client.execute({ sql, args });
+    const result = await getClient().execute({ sql, args });
     return result.rows as any[];
   },
 
   async run(sql: string, ...args: any[]): Promise<{ lastInsertRowid: number; changes: number }> {
-    const result = await client.execute({ sql, args });
+    const result = await getClient().execute({ sql, args });
     return {
       lastInsertRowid: Number(result.lastInsertRowid),
       changes: result.rowsAffected,
@@ -26,11 +33,11 @@ export const db = {
   },
 
   async exec(sql: string): Promise<void> {
-    await client.executeMultiple(sql);
+    await getClient().executeMultiple(sql);
   },
 
   async batch(stmts: Array<{ sql: string; args?: any[] }>): Promise<void> {
-    await client.batch(
+    await getClient().batch(
       stmts.map(s => ({ sql: s.sql, args: s.args || [] })),
       'write'
     );
