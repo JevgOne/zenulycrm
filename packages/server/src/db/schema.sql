@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS sent_emails (
   template_id  INTEGER REFERENCES email_templates(id),
   subject      TEXT NOT NULL,
   to_email     TEXT NOT NULL,
+  body_html    TEXT,
+  body_text    TEXT,
   status       TEXT DEFAULT 'queued',
   tracking_id  TEXT UNIQUE,
   opened_at    TEXT,
@@ -104,6 +106,15 @@ CREATE TABLE IF NOT EXISTS sent_emails (
   sent_at      TEXT,
   created_at   TEXT DEFAULT (datetime('now'))
 );
+
+-- Unsubscribe list (GDPR)
+CREATE TABLE IF NOT EXISTS unsubscribes (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  email           TEXT NOT NULL UNIQUE,
+  reason          TEXT,
+  unsubscribed_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_unsubscribes_email ON unsubscribes(email);
 
 CREATE INDEX IF NOT EXISTS idx_sent_emails_campaign ON sent_emails(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_sent_emails_contact ON sent_emails(contact_id);

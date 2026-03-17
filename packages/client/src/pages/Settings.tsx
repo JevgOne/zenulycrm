@@ -223,7 +223,7 @@ export default function Settings() {
           <div className="bg-surface2 rounded-xl border border-border-light p-6 space-y-6">
             <div>
               <h3 className="text-sm font-semibold text-text mb-1">Název CRM</h3>
-              <p className="text-sm text-text-muted">Zenuly CRM</p>
+              <p className="text-sm text-text-muted">Weblyx CRM</p>
             </div>
             <div>
               <h3 className="text-sm font-semibold text-text mb-1">Verze</h3>

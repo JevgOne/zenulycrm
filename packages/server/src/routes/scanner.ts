@@ -137,7 +137,7 @@ async function analyzeUrl(url: string): Promise<any> {
     // Try HTTPS first
     const httpsUrl = url.replace(/^http:\/\//, 'https://');
     const resp = await fetch(httpsUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ZenulyCRM/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WeblyxCRM/1.0)' },
       redirect: 'follow',
       signal: AbortSignal.timeout(8000),
     });
@@ -149,7 +149,7 @@ async function analyzeUrl(url: string): Promise<any> {
       // Fallback to HTTP
       const httpUrl = url.replace(/^https:\/\//, 'http://');
       const resp = await fetch(httpUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ZenulyCRM/1.0)' },
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WeblyxCRM/1.0)' },
         redirect: 'follow',
         signal: AbortSignal.timeout(8000),
       });

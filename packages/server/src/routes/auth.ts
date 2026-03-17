@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import db from '../db/connection';
 
 const router = Router();
-const JWT_SECRET = process.env.SESSION_SECRET || 'zenuly-crm-secret-change-me';
+const JWT_SECRET = process.env.SESSION_SECRET || 'weblyx-crm-secret-change-me';
 const JWT_EXPIRES = '7d';
 
 function hashPassword(password: string): string {

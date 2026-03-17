@@ -2,21 +2,18 @@ import { useEffect, useState } from 'react';
 import { get, post, put, del } from '../api/client';
 import { Plus, Edit2, Trash2, Eye, Sparkles, Loader2 } from 'lucide-react';
 
-const DEFAULT_TEMPLATE = `Dobrý den{{kontakt ? ', ' + kontakt : ''}},
+const DEFAULT_TEMPLATE = `<p>Dobrý den{{kontakt ? ', ' + kontakt : ''}},</p>
 
-zabývám se tvorbou webových stránek a při průzkumu firem v oblasti {{obor}} v {{mesto}} jsem si všiml, že vaše stránky {{web}} mají několik nedostatků:
+<p>při průzkumu firem v oblasti <strong>{{obor}}</strong> v {{mesto}} mě zaujaly vaše stránky <strong>{{web}}</strong>.</p>
 
-{{problemy}}
+<p>Všiml jsem si dvou věcí, které vás mohou stát zákazníky:</p>
+{{problemy_html}}
 
-Vaše stránka získala skóre {{score}}/100 v našem testu zastaralosti.
+<p>Vaše stránka získala <strong>{{score}}/100</strong> v testu zastaralosti — to znamená, že potenciální zákazníci mohou odcházet ke konkurenci s modernějším webem.</p>
 
-Rád bych vám nabídl bezplatnou 15min konzultaci, kde vám ukážu, jak tyto problémy ovlivňují vaši viditelnost a získávání zákazníků online.
+<p>Stojí vám to za 15 minut? Rád vám ukážu, co konkrétně zlepšit.</p>
 
-Máte zájem o krátký hovor tento týden?
-
-S pozdravem,
-{{odesilatel}}
-weblyx.cz`;
+<p>S pozdravem,<br/>{{odesilatel}}<br/>Weblyx.cz | info@weblyx.cz</p>`;
 
 export default function Templates() {
   const [templates, setTemplates] = useState<any[]>([]);

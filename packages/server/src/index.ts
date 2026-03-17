@@ -24,6 +24,7 @@ import scannerRouter from './routes/scanner';
 import aiRouter from './routes/ai';
 import mockupRouter from './routes/mockup';
 import autopilotRouter from './routes/autopilot';
+import cronRouter from './routes/cron';
 
 // Services
 import { startScheduler } from './services/scheduler';
@@ -56,6 +57,7 @@ async function start() {
   // Public routes (no auth required)
   app.use('/api/auth', authRouter);
   app.use('/api/track', trackingRouter);
+  app.use('/api/cron', cronRouter);
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
@@ -98,8 +100,11 @@ async function start() {
   }
 
   app.listen(PORT, () => {
-    console.log(`Zenuly CRM server running on http://localhost:${PORT}`);
-    startScheduler();
+    console.log(`Weblyx CRM server running on http://localhost:${PORT}`);
+    // Only start node-cron scheduler locally (on Vercel, cron jobs handle this)
+    if (!process.env.VERCEL) {
+      startScheduler();
+    }
   });
 }
 

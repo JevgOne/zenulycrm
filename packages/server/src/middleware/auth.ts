@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.SESSION_SECRET || 'zenuly-crm-secret-change-me';
+const JWT_SECRET = process.env.SESSION_SECRET || 'weblyx-crm-secret-change-me';
 
 export interface AuthRequest extends Request {
   user?: { id: number; email: string; name: string; role: string };

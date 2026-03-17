@@ -1,7 +1,7 @@
 const BASE = '/api';
 
 function getToken(): string | null {
-  const auth = localStorage.getItem('zenuly_auth');
+  const auth = localStorage.getItem('weblyx_auth');
   if (!auth) return null;
   try {
     return JSON.parse(auth).token || null;
@@ -25,7 +25,7 @@ export async function api<T = any>(path: string, options?: RequestInit): Promise
 
   if (res.status === 401) {
     // Token expired or invalid - clear auth and redirect to login
-    localStorage.removeItem('zenuly_auth');
+    localStorage.removeItem('weblyx_auth');
     if (window.location.pathname !== '/' && window.location.pathname !== '/login') {
       window.location.href = '/';
     }
@@ -52,7 +52,7 @@ export const del = <T = any>(path: string) =>
 
 // Auth helpers
 export function isLoggedIn(): boolean {
-  const auth = localStorage.getItem('zenuly_auth');
+  const auth = localStorage.getItem('weblyx_auth');
   if (!auth) return false;
   try {
     const parsed = JSON.parse(auth);
@@ -63,12 +63,12 @@ export function isLoggedIn(): boolean {
 }
 
 export function logout() {
-  localStorage.removeItem('zenuly_auth');
+  localStorage.removeItem('weblyx_auth');
   window.location.href = '/';
 }
 
 export function getUser(): { email: string; name: string; role: string } | null {
-  const auth = localStorage.getItem('zenuly_auth');
+  const auth = localStorage.getItem('weblyx_auth');
   if (!auth) return null;
   try {
     return JSON.parse(auth).user || null;

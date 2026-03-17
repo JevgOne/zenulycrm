@@ -1,6 +1,7 @@
 import db from '../db/connection';
 import { generateEmailForContact } from './ai-service';
 import { generateMockup, getMockupPaths } from './mockup-service';
+import { generateProposalPdf } from './pdf-service';
 import { v4 as uuid } from 'uuid';
 
 interface AutopilotConfig {
@@ -111,6 +112,10 @@ export async function processNewContacts(): Promise<number> {
   let processed = 0;
 
   for (const contact of contacts) {
+    // Check unsubscribe list
+    const unsub = await db.get('SELECT id FROM unsubscribes WHERE email = ?', contact.email);
+    if (unsub) continue;
+
     try {
       // Auto-generate mockup
       if (config.auto_mockup) {
@@ -119,8 +124,22 @@ export async function processNewContacts(): Promise<number> {
           try {
             await generateMockup(contact.id);
             await log(contact.id, 'auto_mockup', 'success', 'Mockup vygenerován');
+            // Generate PDF proposal after mockup
+            try {
+              await generateProposalPdf(contact.id);
+              await log(contact.id, 'auto_pdf', 'success', 'PDF nabídka vygenerována');
+            } catch (pdfErr: any) {
+              await log(contact.id, 'auto_pdf', 'error', pdfErr.message);
+            }
           } catch (err: any) {
             await log(contact.id, 'auto_mockup', 'error', err.message);
+            // Generate PDF even without mockup
+            try {
+              await generateProposalPdf(contact.id);
+              await log(contact.id, 'auto_pdf', 'success', 'PDF nabídka vygenerována (bez mockupu)');
+            } catch (pdfErr: any) {
+              await log(contact.id, 'auto_pdf', 'error', pdfErr.message);
+            }
           }
         }
       }

@@ -20,7 +20,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('zenuly_auth');
+    localStorage.removeItem('weblyx_auth');
     navigate('/');
   };
 
@@ -29,11 +29,11 @@ export default function Sidebar() {
       <div className="px-4 py-5 border-b border-border">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-lg shadow-primary/20">
-            <span className="text-white font-bold text-sm">Z</span>
+            <span className="text-white font-bold text-sm">W</span>
           </div>
           <div>
             <h1 className="text-[15px] font-semibold tracking-tight text-text">
-              Zenuly <span className="text-primary-light">CRM</span>
+              Weblyx <span className="text-primary-light">CRM</span>
             </h1>
             <p className="text-[10px] font-mono text-text-dim uppercase tracking-wider">Administrace</p>
           </div>

@@ -119,7 +119,7 @@ export default function ChatAssistant() {
           </div>
           <div>
             <div className="text-sm font-semibold text-text">AI Asistent</div>
-            <div className="text-[10px] text-text-dim">Claude Sonnet - Zenuly CRM</div>
+            <div className="text-[10px] text-text-dim">Claude Sonnet - Weblyx CRM</div>
           </div>
         </div>
         <div className="flex gap-1">

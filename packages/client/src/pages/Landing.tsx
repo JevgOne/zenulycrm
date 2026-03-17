@@ -50,10 +50,10 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center">
-              <span className="text-white font-bold text-sm">Z</span>
+              <span className="text-white font-bold text-sm">W</span>
             </div>
             <span className="font-bold text-lg text-text">
-              Zenuly<span className="text-primary">.cz</span>
+              Weblyx<span className="text-primary">.cz</span>
             </span>
           </div>
           <div className="flex items-center gap-6">
@@ -76,18 +76,18 @@ export default function Landing() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary text-xs font-medium rounded-full mb-6 border border-primary/20">
               <Star size={12} className="fill-primary" />
-              CRM systém nové generace
+              Webová agentura nové generace
             </div>
             <h1 className="text-5xl sm:text-6xl font-extrabold text-text leading-[1.1] tracking-tight">
-              Vaše podnikání
+              Moderní weby
               <br />
               <span className="bg-gradient-to-r from-primary to-violet-500 bg-clip-text text-transparent">
-                pod kontrolou.
+                pro vaše podnikání.
               </span>
             </h1>
             <p className="text-lg text-text-muted mt-6 max-w-xl leading-relaxed">
-              Zenuly CRM vám pomůže spravovat kontakty, sledovat obchodní pipeline
-              a automatizovat komunikaci se zákazníky. Vše na jednom místě, vše česky.
+              Weblyx tvoří moderní webové stránky a automatizuje procesy pro malé a střední firmy.
+              Rychle, česky a za férovou cenu.
             </p>
             <div className="flex flex-wrap gap-3 mt-8">
               <Link
@@ -187,12 +187,12 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center">
-              <span className="text-white font-bold text-[10px]">Z</span>
+              <span className="text-white font-bold text-[10px]">W</span>
             </div>
-            <span className="text-sm font-semibold text-text">Zenuly.cz</span>
+            <span className="text-sm font-semibold text-text">Weblyx.cz</span>
           </div>
           <p className="text-xs text-text-dim">
-            &copy; {new Date().getFullYear()} Zenuly CRM. Všechna práva vyhrazena.
+            &copy; {new Date().getFullYear()} Weblyx CRM. Všechna práva vyhrazena.
           </p>
         </div>
       </footer>

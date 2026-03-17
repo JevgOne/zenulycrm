@@ -16,7 +16,12 @@ export default function Pipeline() {
   const [dragging, setDragging] = useState<number | null>(null);
 
   useEffect(() => {
-    get('/contacts?limit=500').then(d => setContacts(d.contacts));
+    // Load contacts per stage to ensure all stages are represented
+    Promise.all(
+      STAGES.map(s => get(`/contacts?limit=50&stage=${s.key}`).then(d => d.contacts || []))
+    ).then(results => {
+      setContacts(results.flat());
+    });
   }, []);
 
   const grouped = STAGES.map(s => ({
@@ -69,7 +74,7 @@ export default function Pipeline() {
                 >
                   <Link to={`/contacts/${c.id}`} className="block">
                     <div className="font-medium text-sm truncate text-text">
-                      {c.business_name || c.domain || 'Bez názvu'}
+                      {c.business_name || c.contact_name || c.email || c.domain || 'Bez názvu'}
                     </div>
                     <div className="flex items-center gap-2 mt-1.5 text-xs text-text-dim">
                       {c.category && <span>{c.category}</span>}

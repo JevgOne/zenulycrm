@@ -36,7 +36,7 @@ export default function Login() {
         return;
       }
 
-      localStorage.setItem('zenuly_auth', JSON.stringify({
+      localStorage.setItem('weblyx_auth', JSON.stringify({
         token: data.token,
         user: data.user,
       }));
@@ -60,10 +60,10 @@ export default function Login() {
         <div className="bg-surface2 rounded-2xl border border-border-light p-8">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-11 h-11 rounded-[10px] bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-lg shadow-primary/25">
-              <span className="text-white font-bold text-lg">Z</span>
+              <span className="text-white font-bold text-lg">W</span>
             </div>
             <div>
-              <h1 className="font-display text-xl text-text">Zenuly CRM</h1>
+              <h1 className="font-display text-xl text-text">Weblyx CRM</h1>
               <p className="text-xs text-text-dim font-mono uppercase tracking-wider">Přihlášení</p>
             </div>
           </div>
@@ -112,7 +112,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-xs text-text-dim mt-6 font-mono">
-          &copy; {new Date().getFullYear()} Zenuly CRM
+          &copy; {new Date().getFullYear()} Weblyx CRM
         </p>
         <a
           href="https://weblyx.cz"

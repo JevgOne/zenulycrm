@@ -64,12 +64,16 @@ router.post('/:id/send', async (req: Request, res: Response) => {
 
   let queued = 0;
   for (const contact of contacts) {
+    // Check unsubscribe list
+    const unsub = await db.get('SELECT id FROM unsubscribes WHERE email = ?', contact.email);
+    if (unsub) continue;
+
     const rendered = renderTemplate(template.subject, template.body_html, contact);
     const trackingId = uuidv4();
     await db.run(`
-      INSERT INTO sent_emails (campaign_id, contact_id, template_id, subject, to_email, tracking_id)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, campaign.id, contact.id, template.id, rendered.subject, contact.email, trackingId);
+      INSERT INTO sent_emails (campaign_id, contact_id, template_id, subject, to_email, body_html, tracking_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, campaign.id, contact.id, template.id, rendered.subject, contact.email, rendered.body, trackingId);
     queued++;
   }
 

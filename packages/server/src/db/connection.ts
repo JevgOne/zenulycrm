@@ -79,10 +79,16 @@ CREATE TABLE IF NOT EXISTS campaigns (
 CREATE TABLE IF NOT EXISTS sent_emails (
   id INTEGER PRIMARY KEY AUTOINCREMENT, campaign_id INTEGER REFERENCES campaigns(id),
   contact_id INTEGER NOT NULL REFERENCES contacts(id), template_id INTEGER REFERENCES email_templates(id),
-  subject TEXT NOT NULL, to_email TEXT NOT NULL, status TEXT DEFAULT 'queued', tracking_id TEXT UNIQUE,
+  subject TEXT NOT NULL, to_email TEXT NOT NULL, body_html TEXT, body_text TEXT,
+  status TEXT DEFAULT 'queued', tracking_id TEXT UNIQUE,
   opened_at TEXT, clicked_at TEXT, bounced_at TEXT, resend_id TEXT, error TEXT, sent_at TEXT,
   created_at TEXT DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS unsubscribes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE,
+  reason TEXT, unsubscribed_at TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_unsubscribes_email ON unsubscribes(email);
 CREATE INDEX IF NOT EXISTS idx_sent_emails_campaign ON sent_emails(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_sent_emails_contact ON sent_emails(contact_id);
 CREATE INDEX IF NOT EXISTS idx_sent_emails_tracking ON sent_emails(tracking_id);
@@ -112,9 +118,107 @@ CREATE TABLE IF NOT EXISTS users (
 );
 `;
 
+// Migrations for existing databases
+async function runMigrations() {
+  const migrations = [
+    'ALTER TABLE sent_emails ADD COLUMN body_html TEXT',
+    'ALTER TABLE sent_emails ADD COLUMN body_text TEXT',
+  ];
+  for (const sql of migrations) {
+    try { await db.run(sql); } catch { /* column already exists */ }
+  }
+}
+
+// Seed default email templates + sequence
+async function seedDefaults() {
+  const existing = await db.get('SELECT COUNT(*) as c FROM email_templates');
+  if (existing.c > 0) return;
+
+  // Template 1: Cold Intro
+  await db.run(`INSERT INTO email_templates (name, subject, body_html, body_text, category) VALUES (?, ?, ?, ?, ?)`,
+    'Cold Intro',
+    '{{firma}} - všiml jsem si něčeho na vašem webu',
+    `<p>Dobrý den{{kontakt ? ', ' + kontakt : ''}},</p>
+<p>při průzkumu firem v oblasti <strong>{{obor}}</strong> v {{mesto}} mě zaujaly vaše stránky <strong>{{web}}</strong>.</p>
+<p>Všiml jsem si dvou věcí, které vás mohou stát zákazníky:</p>
+{{problemy_html}}
+<p>Vaše stránka získala <strong>{{score}}/100</strong> v testu zastaralosti — to znamená, že potenciální zákazníci mohou odcházet ke konkurenci s modernějším webem.</p>
+<p>Stojí vám to za 15 minut? Rád vám ukážu, co konkrétně zlepšit.</p>
+<p>S pozdravem,<br/>{{odesilatel}}<br/>Weblyx.cz | info@weblyx.cz</p>`,
+    'Dobrý den,\n\npři průzkumu firem v oblasti {{obor}} v {{mesto}} mě zaujaly vaše stránky {{web}}.\n\nVšiml jsem si dvou věcí, které vás mohou stát zákazníky:\n\n{{problemy}}\n\nVaše stránka získala {{score}}/100 v testu zastaralosti.\n\nStojí vám to za 15 minut? Rád vám ukážu, co konkrétně zlepšit.\n\nS pozdravem,\n{{odesilatel}}\nWeblyx.cz | info@weblyx.cz',
+    'cold-outreach'
+  );
+
+  // Template 2: Follow-up s hodnotou
+  await db.run(`INSERT INTO email_templates (name, subject, body_html, body_text, category) VALUES (?, ?, ?, ?, ?)`,
+    'Follow-up s tipem',
+    'Re: {{firma}} - konkrétní tip pro váš web',
+    `<p>Dobrý den{{kontakt ? ', ' + kontakt : ''}},</p>
+<p>navazuji na svůj předchozí email ohledně vašeho webu {{web}}.</p>
+<p>Nechci jen upozorňovat na problémy — tady je <strong>konkrétní tip</strong>, který můžete udělat sami:</p>
+<p>{{mobilni}} — pokud váš web není optimalizovaný pro mobily, přicházíte až o <strong>60 % návštěvníků</strong>. Zkontrolujte si to na <em>Google Mobile-Friendly Test</em>.</p>
+<p>Pokud byste chtěl kompletní modernizaci webu (od 7 900 Kč), rád vám připravím nezávazný návrh.</p>
+<p>Stačí odpovědět jedním slovem „zájem".</p>
+<p>{{odesilatel}}<br/>Weblyx.cz</p>`,
+    'Dobrý den,\n\nnavazuji na svůj předchozí email ohledně vašeho webu {{web}}.\n\nNechci jen upozorňovat na problémy — tady je konkrétní tip:\n\n{{mobilni}} — pokud váš web není optimalizovaný pro mobily, přicházíte až o 60 % návštěvníků.\n\nPokud byste chtěl kompletní modernizaci webu (od 7 900 Kč), rád vám připravím nezávazný návrh.\n\nStačí odpovědět jedním slovem „zájem".\n\n{{odesilatel}}\nWeblyx.cz',
+    'follow-up'
+  );
+
+  // Template 3: Nabídka s mockupem/PDF
+  await db.run(`INSERT INTO email_templates (name, subject, body_html, body_text, category) VALUES (?, ?, ?, ?, ?)`,
+    'Nabídka s návrhem',
+    '{{firma}} - připravil jsem vám návrh nového webu',
+    `<p>Dobrý den{{kontakt ? ', ' + kontakt : ''}},</p>
+<p>protože jsem viděl potenciál ve vašem podnikání, připravil jsem <strong>nezávazný návrh</strong>, jak by mohl vypadat váš nový web.</p>
+<p>V příloze najdete:</p>
+<ul>
+<li>Analýzu současného stavu vašeho webu</li>
+<li>Návrh moderního redesignu</li>
+<li>Naše cenové balíčky (od 7 900 Kč)</li>
+</ul>
+<p>Podívejte se a dejte mi vědět, co si myslíte — stačí krátká odpověď.</p>
+<p>{{odesilatel}}<br/>Weblyx.cz | info@weblyx.cz</p>`,
+    'Dobrý den,\n\nprotože jsem viděl potenciál ve vašem podnikání, připravil jsem nezávazný návrh, jak by mohl vypadat váš nový web.\n\nV příloze najdete:\n- Analýzu současného stavu vašeho webu\n- Návrh moderního redesignu\n- Naše cenové balíčky (od 7 900 Kč)\n\nPodívejte se a dejte mi vědět, co si myslíte.\n\n{{odesilatel}}\nWeblyx.cz | info@weblyx.cz',
+    'nabidka'
+  );
+
+  // Template 4: Breakup email
+  await db.run(`INSERT INTO email_templates (name, subject, body_html, body_text, category) VALUES (?, ?, ?, ?, ?)`,
+    'Poslední zpráva',
+    '{{firma}} - poslední zpráva ode mě',
+    `<p>Dobrý den{{kontakt ? ', ' + kontakt : ''}},</p>
+<p>chápu, že máte plno práce, a nechci vás dále obtěžovat.</p>
+<p>Pokud někdy budete přemýšlet o modernizaci webu, budu rád, když se ozvete. Nabídka bezplatné konzultace platí.</p>
+<p>Přeji hodně úspěchů v podnikání.</p>
+<p>{{odesilatel}}<br/>Weblyx.cz | info@weblyx.cz</p>`,
+    'Dobrý den,\n\nchápu, že máte plno práce, a nechci vás dále obtěžovat.\n\nPokud někdy budete přemýšlet o modernizaci webu, budu rád, když se ozvete. Nabídka bezplatné konzultace platí.\n\nPřeji hodně úspěchů v podnikání.\n\n{{odesilatel}}\nWeblyx.cz | info@weblyx.cz',
+    'breakup'
+  );
+
+  // Default sequence with 4 steps
+  const seqResult = await db.run(`INSERT INTO sequences (name, description) VALUES (?, ?)`,
+    'Výchozí outreach sekvence',
+    'Cold intro → Follow-up tip → Nabídka s návrhem → Breakup email'
+  );
+  const seqId = seqResult.lastInsertRowid;
+  const templates = await db.all('SELECT id, category FROM email_templates ORDER BY id ASC LIMIT 4');
+  const delays = [0, 3, 4, 7];
+  for (let i = 0; i < templates.length; i++) {
+    await db.run(
+      'INSERT INTO sequence_steps (sequence_id, step_order, template_id, delay_days, condition) VALUES (?, ?, ?, ?, ?)',
+      seqId, i, templates[i].id, delays[i],
+      i > 0 ? JSON.stringify({ skip_if_replied: true }) : null
+    );
+  }
+
+  console.log('Default templates and sequence seeded');
+}
+
 // Initialize schema
 export async function initDatabase() {
   await db.exec(SCHEMA);
+  await runMigrations();
+  await seedDefaults();
   console.log('Database initialized (Turso)');
 }
 

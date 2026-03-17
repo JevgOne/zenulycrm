@@ -9,7 +9,7 @@ function getClient(): Anthropic {
   return new Anthropic({ apiKey });
 }
 
-const SYSTEM_PROMPT = `Jsi AI asistent pro Zenuly CRM - systém pro správu leadů a oslovování firem se zastaralými weby.
+const SYSTEM_PROMPT = `Jsi AI asistent pro Weblyx CRM - systém pro správu leadů a oslovování firem se zastaralými weby.
 
 Komunikuješ česky, jsi stručný a profesionální. Pomáháš s:
 - Přehledem kontaktů a statistik

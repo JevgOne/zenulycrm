@@ -87,7 +87,7 @@ function CreateCampaignModal({ templates, onClose, onCreated }: {
   const [name, setName] = useState('');
   const [templateId, setTemplateId] = useState('');
   const [useAi, setUseAi] = useState(false);
-  const [filters, setFilters] = useState({ stage: ['new'], minScore: 30, category: '', city: '' });
+  const [filters, setFilters] = useState({ stage: [] as string[], minScore: 0, category: '', city: '' });
 
   const handleCreate = async () => {
     await post('/campaigns', {
