@@ -20,10 +20,22 @@ router.get('/tick', async (req: Request, res: Response) => {
 
   const results: Record<string, any> = {};
 
+  // Only send emails between 8:00-18:00 CET
+  const now = new Date();
+  const cetHour = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Prague' })).getHours();
+  const isBusinessHours = cetHour >= 8 && cetHour < 18;
+  results.cetHour = cetHour;
+  results.businessHours = isBusinessHours;
+
   try {
-    // 1. Process email queue (every tick)
-    const emailsProcessed = await processEmailQueue(5);
-    results.emails = emailsProcessed;
+    // 1. Process email queue (every tick, only during business hours)
+    if (isBusinessHours) {
+      const emailsProcessed = await processEmailQueue(5);
+      results.emails = emailsProcessed;
+    } else {
+      results.emails = 0;
+      results.skipped = 'outside business hours (8-18 CET)';
+    }
 
     // 2. Check completed campaigns (every tick)
     const running = await db.all("SELECT * FROM campaigns WHERE status = 'running'");
@@ -37,15 +49,15 @@ router.get('/tick', async (req: Request, res: Response) => {
     }
     results.campaignsCompleted = campaignsCompleted;
 
-    // 3. Process sequences (every 5 minutes - check minute)
+    // 3. Process sequences (every 5 minutes, business hours only)
     const minute = new Date().getMinutes();
-    if (minute % 5 === 0) {
+    if (isBusinessHours && minute % 5 === 0) {
       const seqProcessed = await processSequences();
       results.sequences = seqProcessed;
     }
 
-    // 4. Autopilot: new contacts (every 15 minutes)
-    if (minute % 15 === 0) {
+    // 4. Autopilot: new contacts (every 15 minutes, business hours only)
+    if (isBusinessHours && minute % 15 === 0) {
       try {
         const newContacts = await processNewContacts();
         results.autopilotNew = newContacts;
@@ -54,8 +66,8 @@ router.get('/tick', async (req: Request, res: Response) => {
       }
     }
 
-    // 5. Autopilot: follow-ups (every hour)
-    if (minute === 0) {
+    // 5. Autopilot: follow-ups (every hour, business hours only)
+    if (isBusinessHours && minute === 0) {
       try {
         const followups = await processFollowups();
         results.autopilotFollowups = followups;
