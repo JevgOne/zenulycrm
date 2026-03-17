@@ -173,7 +173,7 @@ export async function sendEmail(sentEmailId: number): Promise<SendResult> {
   }
 }
 
-export const DAILY_SEND_LIMIT = 100;
+export const DAILY_SEND_LIMIT = 1600;
 
 export async function processEmailQueue(batchSize = 5): Promise<number> {
   // Check daily limit
