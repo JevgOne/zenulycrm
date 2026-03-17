@@ -3,7 +3,8 @@ import { get } from '../api/client';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Mail, TrendingUp, Target, ArrowUpRight, ArrowDownRight,
-  Clock, BarChart3, Zap, ChevronRight, Sparkles, Activity
+  Clock, BarChart3, Zap, ChevronRight, Sparkles, Activity,
+  Send, Inbox, CheckCircle2, AlertTriangle, MousePointerClick, XCircle, Ban
 } from 'lucide-react';
 
 const STAGE_LABELS: Record<string, string> = {
@@ -211,6 +212,116 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Denní odesílání + Sekvence + Emailový marketing */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Denní limit */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <Send size={18} className="text-teal" />
+            <h2 className="heading-2">Denní odesílání</h2>
+          </div>
+
+          {(() => {
+            const pct = data.dailySendLimit > 0 ? (data.sentToday / data.dailySendLimit) * 100 : 0;
+            const isWarning = pct >= 80;
+            return (
+              <div className="space-y-3">
+                <div className="text-3xl font-bold text-text font-mono">
+                  {data.sentToday} <span className="text-lg text-text-dim">/ {data.dailySendLimit}</span>
+                </div>
+                <div className="h-3 bg-surface2 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${isWarning ? 'bg-accent' : 'bg-teal'}`}
+                    style={{ width: `${Math.min(100, pct)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-text-dim">Ve frontě: {data.queuedEmails}</p>
+                {(data.failedEmails || 0) > 0 && (
+                  <p className="text-xs text-danger">Selhalo: {data.failedEmails}</p>
+                )}
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Weblyx Outreach sekvence */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <Mail size={18} className="text-primary-light" />
+            <h2 className="heading-2">Weblyx Outreach</h2>
+          </div>
+
+          {(!data.outreachStats || Object.keys(data.outreachStats).length === 0) ? (
+            <div className="text-center py-8">
+              <Mail size={32} className="mx-auto text-text-dim/30 mb-3" />
+              <p className="text-sm text-text-dim">Žádná sekvence</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {data.outreachStats.active != null && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-muted">Aktivních:</span>
+                  <span className="text-sm font-bold font-mono text-teal">{data.outreachStats.active || 0}</span>
+                </div>
+              )}
+              {data.outreachStats.completed != null && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-muted">Dokončených:</span>
+                  <span className="text-sm font-bold font-mono text-accent">{data.outreachStats.completed || 0}</span>
+                </div>
+              )}
+              {data.outreachStats.cancelled != null && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-muted">Zrušených:</span>
+                  <span className="text-sm font-bold font-mono text-text-dim">{data.outreachStats.cancelled || 0}</span>
+                </div>
+              )}
+              {!data.outreachStats.active && !data.outreachStats.completed && !data.outreachStats.cancelled && (
+                <div className="text-center py-4">
+                  <p className="text-sm text-text-dim">Žádná sekvence</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Emailový marketing přehled */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 size={18} className="text-accent" />
+            <h2 className="heading-2">Emailový marketing</h2>
+          </div>
+
+          {(() => {
+            const totalSent = data.emailStats.totalSent || 0;
+            const totalOpened = data.emailStats.totalOpened || 0;
+            const totalClicked = data.emailStats.totalClicked || 0;
+            const openPct = totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) : '0';
+            const clickPct = totalSent > 0 ? ((totalClicked / totalSent) * 100).toFixed(1) : '0';
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-muted">Celkem odesláno:</span>
+                  <span className="text-sm font-bold font-mono text-text">{totalSent.toLocaleString('cs')}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-muted">Otevřeno:</span>
+                  <span className="text-sm font-bold font-mono text-teal">{totalOpened.toLocaleString('cs')} ({openPct}%)</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-muted">Kliknuto:</span>
+                  <span className="text-sm font-bold font-mono text-accent">{totalClicked.toLocaleString('cs')} ({clickPct}%)</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-text-muted">Odhlášených:</span>
+                  <span className="text-sm font-bold font-mono text-text-dim">{(data.unsubscribes || 0).toLocaleString('cs')}</span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+
       {/* Activity + Reminders */}
       <div className="grid grid-cols-2 gap-4">
         {/* Recent activity */}
@@ -233,7 +344,7 @@ export default function Dashboard() {
                   <span className="text-[11px] font-mono text-text-dim w-28 shrink-0">
                     {new Date(a.created_at).toLocaleString('cs', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  <span className="font-medium text-text truncate">{a.business_name || a.domain || 'Kontakt'}</span>
+                  <span className="font-medium text-text truncate">{a.business_name || a.contact_name || a.contact_email || a.domain || (() => { try { return JSON.parse(a.details)?.to; } catch { return null; } })() || 'Kontakt'}</span>
                   <span className="text-text-muted text-xs truncate">{a.title}</span>
                 </div>
               ))}

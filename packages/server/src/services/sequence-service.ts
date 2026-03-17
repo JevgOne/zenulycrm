@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import db from '../db/connection';
 import { renderTemplate } from '../routes/templates';
-import { sendEmail } from './email-service';
+import { DAILY_SEND_LIMIT } from './email-service';
 
 export async function enrollInSequence(sequenceId: number, contactIds: number[]) {
   const sequence = await db.get('SELECT * FROM sequences WHERE id = ? AND is_active = 1', sequenceId);
@@ -33,12 +33,24 @@ export async function enrollInSequence(sequenceId: number, contactIds: number[])
   return enrolled;
 }
 
+const BATCH_LIMIT = 20;
+
 export async function processSequences(): Promise<number> {
+  // Check daily limit first
+  const todayCount = await db.get(
+    "SELECT COUNT(*) as cnt FROM sent_emails WHERE status IN ('sent','opened','clicked') AND sent_at >= date('now')"
+  );
+  if (todayCount.cnt >= DAILY_SEND_LIMIT) {
+    return 0; // Daily limit reached
+  }
+  const remaining = Math.min(DAILY_SEND_LIMIT - todayCount.cnt, BATCH_LIMIT);
+
   const due = await db.all(`
     SELECT se.*, s.name as sequence_name
     FROM sequence_enrollments se JOIN sequences s ON se.sequence_id = s.id
     WHERE se.status = 'active' AND se.next_send_at <= datetime('now') AND s.is_active = 1
-  `);
+    LIMIT ?
+  `, remaining);
 
   let processed = 0;
 
@@ -84,14 +96,39 @@ export async function processSequences(): Promise<number> {
     const template = await db.get('SELECT * FROM email_templates WHERE id = ?', step.template_id);
     if (!template) continue;
 
+    // Check unsubscribe list
+    const unsub = await db.get('SELECT id FROM unsubscribes WHERE email = ?', contact.email);
+    if (unsub) {
+      await db.run("UPDATE sequence_enrollments SET status = 'cancelled' WHERE id = ?", enrollment.id);
+      continue;
+    }
+
+    // Prevent duplicate: skip if email already exists for this contact + template
+    const existing = await db.get(
+      "SELECT id FROM sent_emails WHERE contact_id = ? AND template_id = ? AND status IN ('queued','processing','sent','opened','clicked')",
+      contact.id, template.id
+    );
+    if (existing) {
+      // Already queued or sent, just advance the step without creating duplicate
+      const nextStep = enrollment.current_step + 1;
+      if (nextStep >= steps.length) {
+        await db.run("UPDATE sequence_enrollments SET current_step = ?, status = 'completed' WHERE id = ?", nextStep, enrollment.id);
+      } else {
+        const nextDelay = steps[nextStep].delay_days;
+        await db.run(
+          "UPDATE sequence_enrollments SET current_step = ?, next_send_at = datetime('now', '+' || ? || ' days') WHERE id = ?",
+          nextStep, nextDelay, enrollment.id
+        );
+      }
+      continue;
+    }
+
     const rendered = renderTemplate(template.subject, template.body_html, contact);
     const trackingId = uuidv4();
 
-    const emailResult = await db.run(`
-      INSERT INTO sent_emails (contact_id, template_id, subject, to_email, tracking_id) VALUES (?, ?, ?, ?, ?)
-    `, contact.id, template.id, rendered.subject, contact.email, trackingId);
-
-    await sendEmail(emailResult.lastInsertRowid);
+    await db.run(`
+      INSERT INTO sent_emails (contact_id, template_id, subject, to_email, body_html, tracking_id, status) VALUES (?, ?, ?, ?, ?, ?, 'queued')
+    `, contact.id, template.id, rendered.subject, contact.email, rendered.body, trackingId);
 
     if (contact.stage === 'new') {
       await db.run("UPDATE contacts SET stage = 'contacted', updated_at = datetime('now') WHERE id = ?", contact.id);
