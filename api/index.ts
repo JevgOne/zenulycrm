@@ -17,6 +17,7 @@ import scannerRouter from '../packages/server/src/routes/scanner';
 import aiRouter from '../packages/server/src/routes/ai';
 import mockupRouter from '../packages/server/src/routes/mockup';
 import autopilotRouter from '../packages/server/src/routes/autopilot';
+import cronRouter from '../packages/server/src/routes/cron';
 import { initAutopilotTable } from '../packages/server/src/services/autopilot-service';
 
 const app = express();
@@ -53,6 +54,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRouter);
 app.use('/api/track', trackingRouter);
+app.use('/api/cron', cronRouter);
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
