@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react';
 import { get } from '../api/client';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, Mail, TrendingUp, Target, ArrowUpRight, ArrowDownRight,
-  Clock, BarChart3, Zap, ChevronRight, Sparkles, Activity,
-  Send, Inbox, CheckCircle2, AlertTriangle, MousePointerClick, XCircle, Ban
+  Users, Mail, TrendingUp, ArrowUpRight,
+  Clock, BarChart3, Zap, ChevronRight, Sparkles,
+  Send, MousePointerClick, Eye, Ban, ExternalLink,
+  CheckCircle2, XCircle, AlertTriangle
 } from 'lucide-react';
 
 const STAGE_LABELS: Record<string, string> = {
-  new: 'Nový', contacted: 'Oslovený', responded: 'Odpověděl',
-  meeting: 'Schůzka', client: 'Klient', lost: 'Ztracený',
+  new: 'Novy', contacted: 'Osloveny', responded: 'Odpovedel',
+  meeting: 'Schuzka', client: 'Klient', lost: 'Ztraceny',
 };
 
 const STAGE_COLORS: Record<string, string> = {
@@ -21,6 +22,15 @@ const STAGE_BG: Record<string, string> = {
   new: 'bg-text-muted/10', contacted: 'bg-primary/10',
   responded: 'bg-teal/10', meeting: 'bg-accent/10',
   client: 'bg-teal/10', lost: 'bg-danger/10',
+};
+
+const EMAIL_STATUS: Record<string, { label: string; color: string; icon: any }> = {
+  sent: { label: 'Odeslano', color: 'text-text-muted', icon: CheckCircle2 },
+  opened: { label: 'Otevreno', color: 'text-teal', icon: Eye },
+  clicked: { label: 'Kliknuto', color: 'text-accent', icon: MousePointerClick },
+  failed: { label: 'Selhalo', color: 'text-danger', icon: XCircle },
+  skipped: { label: 'Preskoceno', color: 'text-text-dim', icon: Ban },
+  processing: { label: 'Odesila se...', color: 'text-accent', icon: Send },
 };
 
 export default function Dashboard() {
@@ -44,14 +54,9 @@ export default function Dashboard() {
   const stageMap = Object.fromEntries(
     (data.stages || []).map((s: any) => [s.stage, s.count])
   );
-
   const totalInPipeline = Object.values(stageMap).reduce((a: number, b: any) => a + (b || 0), 0) as number;
-  const conversionRate = totalInPipeline > 0
-    ? ((stageMap['client'] || 0) / totalInPipeline * 100).toFixed(1)
-    : '0';
-  const openRate = data.emailStats.totalSent > 0
-    ? ((data.emailStats.totalOpened / data.emailStats.totalSent) * 100).toFixed(0)
-    : '0';
+
+  const { emailStats } = data;
 
   return (
     <div className="animate-page space-y-6">
@@ -59,22 +64,14 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="heading-1">Dashboard</h1>
-          <p className="text-sm text-text-dim mt-1">Přehled vašeho CRM</p>
+          <p className="text-sm text-text-dim mt-1">Prehled vaseho CRM</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => navigate('/admin/scanner')}
-            className="btn-secondary flex items-center gap-2 !py-2 !px-4"
-          >
-            <Zap size={14} />
-            Scanner
+          <button onClick={() => navigate('/admin/scanner')} className="btn-secondary flex items-center gap-2 !py-2 !px-4">
+            <Zap size={14} /> Scanner
           </button>
-          <button
-            onClick={() => navigate('/admin/campaigns')}
-            className="btn-primary flex items-center gap-2 !py-2 !px-4"
-          >
-            <Sparkles size={14} />
-            Nová kampaň
+          <button onClick={() => navigate('/admin/campaigns')} className="btn-primary flex items-center gap-2 !py-2 !px-4">
+            <Sparkles size={14} /> Nova kampan
           </button>
         </div>
       </div>
@@ -82,145 +79,174 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-4 gap-4">
         <KpiCard
-          icon={<Users size={20} />}
-          label="Celkem kontaktů"
-          value={data.totalContacts.toLocaleString('cs')}
-          sub={`+${data.thisMonth} tento měsíc`}
-          trend={data.thisMonth > 0 ? 'up' : 'neutral'}
-          color="primary"
-        />
-        <KpiCard
-          icon={<Target size={20} />}
-          label="Průměrné skóre"
-          value={data.avgScore}
-          sub="/100 bodů"
-          trend={data.avgScore >= 50 ? 'up' : 'down'}
+          icon={<Send size={20} />}
+          label="Odeslano dnes"
+          value={data.sentToday}
+          sub={`z ${data.dailySendLimit} limitu`}
+          trend={data.sentToday > 0 ? 'up' : 'neutral'}
           color="accent"
         />
         <KpiCard
           icon={<Mail size={20} />}
-          label="Odesláno emailů"
-          value={data.emailStats.totalSent.toLocaleString('cs')}
-          sub={`${openRate}% otevřeno`}
-          trend={Number(openRate) > 20 ? 'up' : 'neutral'}
+          label="Celkem odeslano"
+          value={emailStats.totalSent.toLocaleString('cs')}
+          sub={`${data.queuedEmails} ve fronte`}
+          trend="neutral"
+          color="primary"
+        />
+        <KpiCard
+          icon={<Eye size={20} />}
+          label="Otevreno"
+          value={emailStats.totalOpened.toLocaleString('cs')}
+          sub={`${emailStats.openRate}% open rate`}
+          trend={emailStats.openRate > 1 ? 'up' : 'neutral'}
           color="teal"
         />
         <KpiCard
-          icon={<TrendingUp size={20} />}
-          label="Konverze"
-          value={`${conversionRate}%`}
-          sub={`${stageMap['client'] || 0} klientů`}
-          trend={Number(conversionRate) > 0 ? 'up' : 'neutral'}
+          icon={<Users size={20} />}
+          label="Kontaktu"
+          value={data.totalContacts.toLocaleString('cs')}
+          sub={`${(data.contacted || 0).toLocaleString('cs')} osloveno`}
+          trend="neutral"
           color="danger"
         />
       </div>
 
-      {/* Pipeline + Email Stats */}
+      {/* Email log table - MAIN SECTION */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Mail size={18} className="text-primary-light" />
+            <h2 className="heading-2">Posledni odeslane emaily</h2>
+          </div>
+          <span className="text-xs text-text-dim font-mono">poslednich 50</span>
+        </div>
+        {(data.recentEmails || []).length === 0 ? (
+          <div className="text-center py-12">
+            <Mail size={36} className="mx-auto text-text-dim/30 mb-3" />
+            <p className="text-sm text-text-dim">Zatim zadne odeslane emaily</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  <th className="pb-3 pr-4 text-[10px] font-mono text-text-dim uppercase tracking-wider">Cas</th>
+                  <th className="pb-3 pr-4 text-[10px] font-mono text-text-dim uppercase tracking-wider">Firma / Email</th>
+                  <th className="pb-3 pr-4 text-[10px] font-mono text-text-dim uppercase tracking-wider">Predmet</th>
+                  <th className="pb-3 pr-4 text-[10px] font-mono text-text-dim uppercase tracking-wider">Status</th>
+                  <th className="pb-3 text-[10px] font-mono text-text-dim uppercase tracking-wider">Otevreno</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data.recentEmails || []).map((e: any) => {
+                  const st = EMAIL_STATUS[e.status] || EMAIL_STATUS.sent;
+                  const Icon = st.icon;
+                  const name = e.business_name || e.contact_name || e.domain || e.to_email;
+                  return (
+                    <tr key={e.id} className="border-b border-border/50 hover:bg-surface/50 transition-colors">
+                      <td className="py-2.5 pr-4 text-[11px] font-mono text-text-dim whitespace-nowrap">
+                        {e.sent_at ? new Date(e.sent_at).toLocaleString('cs', {
+                          day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit'
+                        }) : '—'}
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <div className="font-medium text-text truncate max-w-[200px]" title={name}>{name}</div>
+                        <div className="text-[10px] text-text-dim font-mono">{e.to_email}</div>
+                      </td>
+                      <td className="py-2.5 pr-4 text-text-muted truncate max-w-[250px]" title={e.subject}>
+                        {e.subject}
+                      </td>
+                      <td className="py-2.5 pr-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 text-xs ${st.color}`}>
+                          <Icon size={12} />
+                          {st.label}
+                        </span>
+                        {e.error && e.status === 'failed' && (
+                          <div className="text-[10px] text-danger/70 mt-0.5 truncate max-w-[150px]" title={e.error}>{e.error}</div>
+                        )}
+                      </td>
+                      <td className="py-2.5 whitespace-nowrap text-[11px] font-mono text-text-dim">
+                        {e.opened_at ? new Date(e.opened_at).toLocaleString('cs', {
+                          day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit'
+                        }) : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Denni graf + Pipeline + Denni limit */}
       <div className="grid grid-cols-3 gap-4">
-        {/* Pipeline */}
-        <div className="col-span-2 card">
-          <div className="flex items-center justify-between mb-5">
+        {/* Denni graf */}
+        {(data.sentByDay || []).length > 0 && (
+          <div className="card">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 size={18} className="text-teal" />
+              <h2 className="heading-2">Poslednich 7 dni</h2>
+            </div>
+            <div className="flex items-end gap-2 h-28">
+              {(() => {
+                const maxCount = Math.max(...(data.sentByDay || []).map((d: any) => d.count), 1);
+                return (data.sentByDay || []).map((d: any) => (
+                  <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[10px] font-mono text-text-dim">{d.count}</span>
+                    <div
+                      className="w-full bg-teal/60 rounded-t"
+                      style={{ height: `${Math.max(4, (d.count / maxCount) * 90)}px` }}
+                    />
+                    <span className="text-[9px] text-text-dim font-mono">
+                      {new Date(d.day + 'T00:00:00').toLocaleDateString('cs', { day: 'numeric', month: 'numeric' })}
+                    </span>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* Pipeline mini */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <BarChart3 size={18} className="text-primary-light" />
+              <TrendingUp size={18} className="text-primary-light" />
               <h2 className="heading-2">Pipeline</h2>
             </div>
             <button
               onClick={() => navigate('/admin/pipeline')}
               className="text-xs text-text-dim hover:text-primary-light transition-colors flex items-center gap-1"
             >
-              Zobrazit vše <ChevronRight size={12} />
+              Detail <ChevronRight size={12} />
             </button>
           </div>
-
-          {/* Pipeline bar */}
-          <div className="flex h-10 rounded-lg overflow-hidden mb-4">
+          <div className="space-y-2">
             {['new', 'contacted', 'responded', 'meeting', 'client', 'lost'].map(stage => {
               const count = stageMap[stage] || 0;
+              if (count === 0) return null;
               const pct = totalInPipeline > 0 ? (count / totalInPipeline) * 100 : 0;
-              if (pct < 0.5) return null;
               return (
-                <div
-                  key={stage}
-                  style={{ width: `${pct}%`, backgroundColor: STAGE_COLORS[stage] }}
-                  className="relative group transition-all hover:brightness-110"
-                  title={`${STAGE_LABELS[stage]}: ${count}`}
-                >
-                  {pct > 8 && (
-                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-bg">
-                      {count.toLocaleString('cs')}
-                    </span>
-                  )}
+                <div key={stage} className="flex items-center gap-2 text-sm">
+                  <span className="w-20 text-[11px] text-text-muted">{STAGE_LABELS[stage]}</span>
+                  <div className="flex-1 h-2 bg-surface2 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: STAGE_COLORS[stage] }} />
+                  </div>
+                  <span className="font-mono text-xs text-text w-16 text-right">{count.toLocaleString('cs')}</span>
                 </div>
               );
             })}
           </div>
-
-          {/* Pipeline numbers */}
-          <div className="grid grid-cols-6 gap-2">
-            {['new', 'contacted', 'responded', 'meeting', 'client', 'lost'].map(stage => (
-              <div key={stage} className={`text-center p-3 rounded-lg ${STAGE_BG[stage]} transition-all hover:scale-105 cursor-default`}>
-                <div className="text-xl font-bold text-text" style={{ color: STAGE_COLORS[stage] }}>
-                  {(stageMap[stage] || 0).toLocaleString('cs')}
-                </div>
-                <div className="text-[9px] font-mono text-text-dim mt-1 uppercase tracking-wider">
-                  {STAGE_LABELS[stage]}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
-        {/* Email stats */}
-        <div className="card flex flex-col">
-          <div className="flex items-center gap-2 mb-5">
-            <Mail size={18} className="text-teal" />
-            <h2 className="heading-2">Emaily</h2>
-          </div>
-
-          <div className="flex-1 space-y-3">
-            <StatRow label="Odesláno" value={data.emailStats.totalSent} color="text-text" />
-            <StatRow label="Otevřeno" value={data.emailStats.totalOpened} color="text-teal" />
-            <StatRow label="Kliknuto" value={data.emailStats.totalClicked} color="text-accent" />
-
-            {data.emailStats.totalSent > 0 && (
-              <div className="pt-3 border-t border-border">
-                <div className="flex justify-between text-xs text-text-dim mb-1.5">
-                  <span>Open rate</span>
-                  <span className="text-teal font-mono">{openRate}%</span>
-                </div>
-                <div className="h-2 bg-surface rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-teal to-accent rounded-full transition-all"
-                    style={{ width: `${Math.min(100, Number(openRate))}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {data.emailStats.totalSent === 0 && (
-            <div className="mt-auto pt-4">
-              <button
-                onClick={() => navigate('/admin/campaigns')}
-                className="w-full btn-primary !py-2 text-xs flex items-center justify-center gap-1.5"
-              >
-                <Sparkles size={12} />
-                Vytvořit kampaň
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Denní odesílání + Sekvence + Emailový marketing */}
-      <div className="grid grid-cols-3 gap-4">
-        {/* Denní limit */}
+        {/* Denni limit */}
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <Send size={18} className="text-teal" />
-            <h2 className="heading-2">Denní odesílání</h2>
+            <h2 className="heading-2">Denni limit</h2>
           </div>
-
           {(() => {
             const pct = data.dailySendLimit > 0 ? (data.sentToday / data.dailySendLimit) * 100 : 0;
             const isWarning = pct >= 80;
@@ -235,144 +261,112 @@ export default function Dashboard() {
                     style={{ width: `${Math.min(100, pct)}%` }}
                   />
                 </div>
-                <p className="text-xs text-text-dim">Ve frontě: {data.queuedEmails}</p>
+                <div className="flex justify-between text-xs text-text-dim">
+                  <span>Ve fronte: {data.queuedEmails}</span>
+                  <span>Zbyva: {data.remainingToday}</span>
+                </div>
                 {(data.failedEmails || 0) > 0 && (
-                  <p className="text-xs text-danger">Selhalo: {data.failedEmails}</p>
+                  <p className="text-xs text-danger flex items-center gap-1">
+                    <AlertTriangle size={11} /> Selhalo: {data.failedEmails}
+                  </p>
                 )}
-              </div>
-            );
-          })()}
-        </div>
-
-        {/* Weblyx Outreach sekvence */}
-        <div className="card">
-          <div className="flex items-center gap-2 mb-4">
-            <Mail size={18} className="text-primary-light" />
-            <h2 className="heading-2">Weblyx Outreach</h2>
-          </div>
-
-          {(!data.outreachStats || Object.keys(data.outreachStats).length === 0) ? (
-            <div className="text-center py-8">
-              <Mail size={32} className="mx-auto text-text-dim/30 mb-3" />
-              <p className="text-sm text-text-dim">Žádná sekvence</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {data.outreachStats.active != null && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-muted">Aktivních:</span>
-                  <span className="text-sm font-bold font-mono text-teal">{data.outreachStats.active || 0}</span>
-                </div>
-              )}
-              {data.outreachStats.completed != null && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-muted">Dokončených:</span>
-                  <span className="text-sm font-bold font-mono text-accent">{data.outreachStats.completed || 0}</span>
-                </div>
-              )}
-              {data.outreachStats.cancelled != null && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-muted">Zrušených:</span>
-                  <span className="text-sm font-bold font-mono text-text-dim">{data.outreachStats.cancelled || 0}</span>
-                </div>
-              )}
-              {!data.outreachStats.active && !data.outreachStats.completed && !data.outreachStats.cancelled && (
-                <div className="text-center py-4">
-                  <p className="text-sm text-text-dim">Žádná sekvence</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Emailový marketing přehled */}
-        <div className="card">
-          <div className="flex items-center gap-2 mb-4">
-            <BarChart3 size={18} className="text-accent" />
-            <h2 className="heading-2">Emailový marketing</h2>
-          </div>
-
-          {(() => {
-            const totalSent = data.emailStats.totalSent || 0;
-            const totalOpened = data.emailStats.totalOpened || 0;
-            const totalClicked = data.emailStats.totalClicked || 0;
-            const openPct = totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) : '0';
-            const clickPct = totalSent > 0 ? ((totalClicked / totalSent) * 100).toFixed(1) : '0';
-            return (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-muted">Celkem odesláno:</span>
-                  <span className="text-sm font-bold font-mono text-text">{totalSent.toLocaleString('cs')}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-muted">Otevřeno:</span>
-                  <span className="text-sm font-bold font-mono text-teal">{totalOpened.toLocaleString('cs')} ({openPct}%)</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-muted">Kliknuto:</span>
-                  <span className="text-sm font-bold font-mono text-accent">{totalClicked.toLocaleString('cs')} ({clickPct}%)</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-text-muted">Odhlášených:</span>
-                  <span className="text-sm font-bold font-mono text-text-dim">{(data.unsubscribes || 0).toLocaleString('cs')}</span>
-                </div>
               </div>
             );
           })()}
         </div>
       </div>
 
-      {/* Activity + Reminders */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Recent activity */}
+      {/* Email stats + Sekvence + Pripominky */}
+      <div className="grid grid-cols-3 gap-4">
+        {/* Email vykon */}
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
-            <Activity size={18} className="text-primary-light" />
-            <h2 className="heading-2">Poslední aktivita</h2>
+            <BarChart3 size={18} className="text-accent" />
+            <h2 className="heading-2">Emaily celkem</h2>
           </div>
-          {data.recentActivity.length === 0 ? (
-            <div className="text-center py-8">
-              <Activity size={32} className="mx-auto text-text-dim/30 mb-3" />
-              <p className="text-sm text-text-dim">Zatím žádná aktivita</p>
-              <p className="text-xs text-text-dim/60 mt-1">Začněte oslovovat kontakty</p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-muted flex items-center gap-1.5"><Mail size={13} /> Odeslano</span>
+              <span className="text-sm font-bold font-mono text-text">{emailStats.totalSent.toLocaleString('cs')}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-muted flex items-center gap-1.5"><Eye size={13} /> Otevreno</span>
+              <span className="text-sm font-bold font-mono text-teal">{emailStats.totalOpened.toLocaleString('cs')} ({emailStats.openRate}%)</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-muted flex items-center gap-1.5"><MousePointerClick size={13} /> Kliknuto</span>
+              <span className="text-sm font-bold font-mono text-accent">{emailStats.totalClicked.toLocaleString('cs')} ({emailStats.clickRate}%)</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-muted flex items-center gap-1.5"><Ban size={13} /> Odhlaseni</span>
+              <span className="text-sm font-bold font-mono text-text-dim">{(data.unsubscribes || 0).toLocaleString('cs')}</span>
+            </div>
+            {emailStats.totalSent > 0 && (
+              <div className="pt-2 border-t border-border">
+                <div className="flex justify-between text-xs text-text-dim mb-1.5">
+                  <span>Open rate</span>
+                  <span className="text-teal font-mono">{emailStats.openRate}%</span>
+                </div>
+                <div className="h-2 bg-surface rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-teal to-accent rounded-full" style={{ width: `${Math.min(100, emailStats.openRate)}%` }} />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sekvence */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp size={18} className="text-primary-light" />
+            <h2 className="heading-2">Sekvence</h2>
+          </div>
+          {(data.sequenceProgress || []).length === 0 ? (
+            <div className="text-center py-6">
+              <Mail size={28} className="mx-auto text-text-dim/30 mb-2" />
+              <p className="text-sm text-text-dim">Zadna sekvence</p>
             </div>
           ) : (
-            <div className="space-y-1 max-h-[250px] overflow-y-auto">
-              {data.recentActivity.map((a: any) => (
-                <div key={a.id} className="flex items-center gap-3 text-sm py-2.5 border-b border-border last:border-0 hover:bg-surface/50 rounded px-2 -mx-2 transition-colors">
-                  <div className="w-2 h-2 rounded-full bg-primary-light shrink-0" />
-                  <span className="text-[11px] font-mono text-text-dim w-28 shrink-0">
-                    {new Date(a.created_at).toLocaleString('cs', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            <div className="space-y-2">
+              {(data.sequenceProgress || []).map((step: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  <span className="w-5 h-5 rounded-full bg-primary/20 text-primary-light flex items-center justify-center text-[10px] font-bold shrink-0">
+                    {i + 1}
                   </span>
-                  <span className="font-medium text-text truncate">{a.business_name || a.contact_name || a.contact_email || a.domain || (() => { try { return JSON.parse(a.details)?.to; } catch { return null; } })() || 'Kontakt'}</span>
-                  <span className="text-text-muted text-xs truncate">{a.title}</span>
+                  <span className="text-text-muted truncate flex-1" title={step.template_name}>
+                    {step.template_name?.replace(/^\d+\s*/, '').replace(/^-\s*/, '')}
+                  </span>
+                  <span className="font-mono text-xs text-text-dim">{(step.waiting || 0).toLocaleString('cs')}</span>
                 </div>
               ))}
+              <div className="border-t border-border pt-2 mt-2 flex justify-between text-xs text-text-dim">
+                <span>Aktivni: <strong className="text-teal">{(data.outreachStats?.active || 0).toLocaleString('cs')}</strong></span>
+                <span>Hotovo: <strong className="text-accent">{(data.outreachStats?.completed || 0).toLocaleString('cs')}</strong></span>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Upcoming reminders */}
+        {/* Pripominky */}
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <Clock size={18} className="text-accent" />
-            <h2 className="heading-2">Připomínky</h2>
+            <h2 className="heading-2">Pripominky</h2>
           </div>
           {(!data.upcomingReminders || data.upcomingReminders.length === 0) ? (
-            <div className="text-center py-8">
-              <Clock size={32} className="mx-auto text-text-dim/30 mb-3" />
-              <p className="text-sm text-text-dim">Žádné připomínky</p>
-              <p className="text-xs text-text-dim/60 mt-1">Připomínky se zobrazí zde</p>
+            <div className="text-center py-6">
+              <Clock size={28} className="mx-auto text-text-dim/30 mb-2" />
+              <p className="text-sm text-text-dim">Zadne pripominky</p>
             </div>
           ) : (
-            <div className="space-y-1 max-h-[250px] overflow-y-auto">
+            <div className="space-y-1 max-h-[200px] overflow-y-auto">
               {data.upcomingReminders.map((r: any) => (
-                <div key={r.id} className="flex items-center gap-3 text-sm py-2.5 border-b border-border last:border-0 hover:bg-surface/50 rounded px-2 -mx-2 transition-colors">
+                <div key={r.id} className="flex items-center gap-3 text-sm py-2 border-b border-border last:border-0">
                   <div className="w-2 h-2 rounded-full bg-accent shrink-0" />
-                  <span className="text-[11px] font-mono text-text-dim w-28 shrink-0">
-                    {new Date(r.due_at).toLocaleString('cs', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  <span className="text-[11px] font-mono text-text-dim w-20 shrink-0">
+                    {new Date(r.due_at).toLocaleString('cs', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  <span className="font-medium text-text truncate">{r.business_name || r.domain || 'Kontakt'}</span>
+                  <span className="font-medium text-text truncate">{r.business_name || r.contact_name || r.domain || 'Kontakt'}</span>
                   <span className="text-text-muted text-xs truncate">{r.title}</span>
                 </div>
               ))}
@@ -407,21 +401,11 @@ function KpiCard({ icon, label, value, sub, color, trend }: {
         <div className="flex items-center justify-between mb-3">
           <div className={`p-2.5 rounded-xl ${iconBg[color]}`}>{icon}</div>
           {trend === 'up' && <ArrowUpRight size={16} className="text-teal" />}
-          {trend === 'down' && <ArrowDownRight size={16} className="text-danger" />}
         </div>
         <div className="text-3xl font-bold text-text tracking-tight">{value}</div>
         <div className="text-xs text-text-dim mt-1.5 font-mono">{sub}</div>
         <div className="label mt-2 !mb-0 !text-[9px]">{label}</div>
       </div>
-    </div>
-  );
-}
-
-function StatRow({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
-      <span className="text-sm text-text-muted">{label}</span>
-      <span className={`text-lg font-bold font-mono ${color}`}>{value.toLocaleString('cs')}</span>
     </div>
   );
 }
