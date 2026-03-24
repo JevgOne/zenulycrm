@@ -44,12 +44,17 @@ function getAttachments(contactId: number): EmailAttachment[] {
 }
 
 function getBaseUrl(): string {
-  const url = process.env.BASE_URL;
-  if (!url && process.env.NODE_ENV === 'production') {
-    throw new Error('BASE_URL environment variable is required in production');
+  const url = (process.env.BASE_URL || '').trim();
+  if (url) return url;
+  const vercelUrl = (process.env.VERCEL_URL || '').trim();
+  if (vercelUrl) return `https://${vercelUrl}`;
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://zenuly.cz';
   }
-  return url || `http://localhost:${process.env.PORT || 3001}`;
+  return `http://localhost:${process.env.PORT || 3001}`;
 }
+
+export { getBaseUrl };
 
 function addEmailFooter(bodyHtml: string, trackingId: string): string {
   const baseUrl = getBaseUrl();
@@ -102,7 +107,7 @@ export async function sendEmail(sentEmailId: number): Promise<SendResult> {
     if (attachments.length > 0) console.log(`[DEV] Would attach: ${attachments.map(a => a.filename).join(', ')}`);
 
     await db.run("UPDATE sent_emails SET status = 'sent', sent_at = datetime('now') WHERE id = ?", sentEmailId);
-    await db.run("UPDATE contacts SET last_contacted_at = datetime('now') WHERE id = ?", email.contact_id);
+    await db.run("UPDATE contacts SET last_contacted_at = datetime('now'), stage = CASE WHEN stage = 'new' THEN 'contacted' ELSE stage END, updated_at = datetime('now') WHERE id = ?", email.contact_id);
 
     if (email.campaign_id) {
       await db.run('UPDATE campaigns SET total_sent = total_sent + 1 WHERE id = ?', email.campaign_id);
@@ -155,7 +160,7 @@ export async function sendEmail(sentEmailId: number): Promise<SendResult> {
       await db.run(`
         INSERT INTO activities (contact_id, type, title, details) VALUES (?, 'email_sent', 'Email odeslán', ?)
       `, email.contact_id, JSON.stringify({ subject: email.subject, to: email.to_email, attachments: attachments.map(a => a.filename) }));
-      await db.run("UPDATE contacts SET last_contacted_at = datetime('now') WHERE id = ?", email.contact_id);
+      await db.run("UPDATE contacts SET last_contacted_at = datetime('now'), stage = CASE WHEN stage = 'new' THEN 'contacted' ELSE stage END, updated_at = datetime('now') WHERE id = ?", email.contact_id);
       return { success: true, resendId: data.id };
     } else {
       const errorMsg = data.message || JSON.stringify(data);
@@ -187,25 +192,33 @@ export async function processEmailQueue(batchSize = 5): Promise<number> {
   const remaining = DAILY_SEND_LIMIT - todayCount.cnt;
   const actualBatch = Math.min(batchSize, remaining);
 
-  // Atomic claim to prevent race conditions
-  const batchId = uuidv4();
-  await db.run(`
-    UPDATE sent_emails SET status = 'processing'
-    WHERE id IN (
-      SELECT id FROM sent_emails WHERE status = 'queued' ORDER BY created_at ASC LIMIT ?
-    )
-  `, actualBatch);
+  // Select IDs first, then claim only those
+  const toClaim = await db.all(
+    "SELECT id FROM sent_emails WHERE status = 'queued' ORDER BY created_at ASC LIMIT ?",
+    actualBatch
+  );
+  if (toClaim.length === 0) return 0;
 
-  const claimed = await db.all("SELECT id FROM sent_emails WHERE status = 'processing'");
+  const ids = toClaim.map((e: any) => e.id);
+  await db.run(`UPDATE sent_emails SET status = 'processing' WHERE id IN (${ids.join(',')})`);
 
   let sent = 0;
-  for (const email of claimed) {
-    const result = await sendEmail(email.id);
+  for (const { id } of toClaim) {
+    // Re-check daily limit before each send to prevent race condition overflows
+    const recheck = await db.get(
+      "SELECT COUNT(*) as cnt FROM sent_emails WHERE status IN ('sent','opened','clicked') AND sent_at >= date('now')"
+    );
+    if (recheck.cnt >= DAILY_SEND_LIMIT) {
+      await db.run("UPDATE sent_emails SET status = 'queued' WHERE id = ? AND status = 'processing'", id);
+      continue;
+    }
+
+    const result = await sendEmail(id);
     if (result.error?.startsWith('QUOTA_EXCEEDED')) {
-      // Put remaining emails back to queued and stop
-      const remainingIds = claimed.slice(sent + 1).map((e: any) => e.id);
-      for (const id of remainingIds) {
-        await db.run("UPDATE sent_emails SET status = 'queued' WHERE id = ? AND status = 'processing'", id);
+      // Put remaining back to queued
+      const remainingIds = ids.slice(sent + 1);
+      for (const rid of remainingIds) {
+        await db.run("UPDATE sent_emails SET status = 'queued' WHERE id = ? AND status = 'processing'", rid);
       }
       console.log('[EmailQueue] Resend quota exceeded, stopping batch');
       break;
@@ -243,4 +256,58 @@ export async function recordClick(trackingId: string): Promise<string | null> {
     await db.run("UPDATE contacts SET priority = 'hot' WHERE id = ? AND priority != 'hot'", email.contact_id);
   }
   return email.to_email;
+}
+
+export async function unsubscribeByEmail(email: string): Promise<boolean> {
+  try {
+    await db.run(
+      "INSERT INTO unsubscribes (email) VALUES (?) ON CONFLICT(email) DO NOTHING",
+      email.toLowerCase().trim()
+    );
+    // Log activity on contact if exists
+    const contact = await db.get('SELECT id FROM contacts WHERE email = ?', email.toLowerCase().trim());
+    if (contact) {
+      await db.run(
+        "INSERT INTO activities (contact_id, type, title) VALUES (?, 'unsubscribed', 'Automaticky odhlášen')",
+        contact.id
+      );
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function sendUnsubscribeConfirmation(toEmail: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return;
+
+  const senderName = process.env.SENDER_NAME || 'Weblyx';
+  const senderEmail = process.env.SENDER_EMAIL || 'info@weblyx.cz';
+
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: `${senderName} <${senderEmail}>`,
+        to: [toEmail],
+        subject: 'Potvrzení odhlášení z odběru - omlouváme se',
+        html: `<!DOCTYPE html>
+<html lang="cs">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <h2 style="color: #333;">Potvrzení odhlášení</h2>
+  <p>Dobrý den,</p>
+  <p>potvrzujeme, že Vaše emailová adresa <strong>${toEmail}</strong> byla úspěšně odstraněna z našeho mailing listu.</p>
+  <p>Omlouváme se za jakékoliv obtěžování. Již Vám nebudeme zasílat žádné další emaily.</p>
+  <p>Pokud byste měl/a jakékoliv dotazy ohledně zpracování Vašich osobních údajů dle GDPR, neváhejte nás kontaktovat odpovědí na tento email.</p>
+  <p style="margin-top: 30px;">S pozdravem,<br><strong>${senderName}</strong></p>
+</body>
+</html>`,
+      }),
+    });
+  } catch (err) {
+    console.error('[Unsubscribe] Failed to send confirmation email:', err);
+  }
 }

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { recordOpen, recordClick } from '../services/email-service';
+import { recordOpen, recordClick, sendUnsubscribeConfirmation } from '../services/email-service';
 import db from '../db/connection';
 
 const router = Router();
@@ -87,6 +87,9 @@ router.post('/unsubscribe/:trackingId', async (req: Request, res: Response) => {
       email.contact_id
     );
   }
+
+  // Send confirmation/apology email
+  await sendUnsubscribeConfirmation(email.to_email);
 
   res.send(`<!DOCTYPE html>
 <html lang="cs">
