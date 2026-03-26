@@ -260,13 +260,23 @@ export async function recordClick(trackingId: string): Promise<string | null> {
 
 export async function unsubscribeByEmail(email: string): Promise<boolean> {
   try {
+    const normalizedEmail = email.toLowerCase().trim();
     await db.run(
       "INSERT INTO unsubscribes (email) VALUES (?) ON CONFLICT(email) DO NOTHING",
-      email.toLowerCase().trim()
+      normalizedEmail
     );
-    // Log activity on contact if exists
-    const contact = await db.get('SELECT id FROM contacts WHERE email = ?', email.toLowerCase().trim());
+    const contact = await db.get('SELECT id FROM contacts WHERE email = ?', normalizedEmail);
     if (contact) {
+      // Cancel all active sequence enrollments
+      await db.run(
+        "UPDATE sequence_enrollments SET status = 'cancelled' WHERE contact_id = ? AND status = 'active'",
+        contact.id
+      );
+      // Update contact stage
+      await db.run(
+        "UPDATE contacts SET stage = 'unsubscribed', updated_at = datetime('now') WHERE id = ?",
+        contact.id
+      );
       await db.run(
         "INSERT INTO activities (contact_id, type, title) VALUES (?, 'unsubscribed', 'Automaticky odhlášen')",
         contact.id

@@ -128,12 +128,37 @@ router.post('/inbound', async (req: Request, res: Response) => {
           "UPDATE contacts SET stage = 'interested', priority = 'hot', updated_at = datetime('now') WHERE id = ?",
           contact.id
         );
+        // Stop sequence - no more cold emails for hot leads
+        await db.run(
+          "UPDATE sequence_enrollments SET status = 'completed' WHERE contact_id = ? AND status = 'active'",
+          contact.id
+        );
         await db.run(
           "INSERT INTO activities (contact_id, type, title, details) VALUES (?, 'replied_interest', 'Odpověděl se zájmem!', ?)",
           contact.id, JSON.stringify({ reply_preview: replyContent.substring(0, 200) })
         );
+        // Notify sales about hot lead
+        const apiKey = process.env.RESEND_API_KEY;
+        const notifyEmail = process.env.SENDER_EMAIL || 'info@weblyx.cz';
+        if (apiKey) {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: `Weblyx CRM <${notifyEmail}>`,
+              to: notifyEmail,
+              subject: `🔥 Hot lead: ${contact.email}`,
+              html: `<h2>Nový hot lead!</h2>
+                <p><strong>Email:</strong> ${contact.email}</p>
+                <p><strong>Firma:</strong> ${contact.business_name || 'N/A'}</p>
+                <p><strong>Odpověď:</strong></p>
+                <blockquote>${replyContent.substring(0, 500)}</blockquote>
+                <p>Sekvence byla automaticky zastavena. Kontaktuj ho osobně!</p>`
+            })
+          }).catch(err => console.error('[Webhook] Failed to send hot lead notification:', err));
+        }
       }
-      console.log(`[Webhook] Interest detected: ${senderEmail}`);
+      console.log(`[Webhook] Interest detected + sequence stopped: ${senderEmail}`);
     }
 
     // If no clear intent, still log the reply
